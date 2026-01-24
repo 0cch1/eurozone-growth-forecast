@@ -2,21 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-import sys
-
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC_PATH = ROOT / "src"
-if str(SRC_PATH) not in sys.path:
-    sys.path.append(str(SRC_PATH))
-
-from evaluation import regression_metrics
-from features import add_lag_features
-from models import build_models
-from preprocessing import fill_missing
+from src.evaluation import regression_metrics
+from src.features import add_lag_features
+from src.models import build_models
+from src.preprocessing import fill_missing
 
 
 def test_smoke_pipeline() -> None:
