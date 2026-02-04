@@ -46,6 +46,8 @@ The default fetch uses:
 
 You can customize sources in `src/data_loader.py`.
 
+**Eurostat backup:** If the API returns no data, `python -m src.build_dataset` will use the bundled backup `data/raw/eurostat_gdp_growth_fallback.csv` (EA19 annual GDP growth, Eurostat-style, 1999–2024). You can replace this file with a fresh download from [Eurostat bulk/databrowser](https://ec.europa.eu/eurostat/databrowser/view/tec00115/default/table) if needed.
+
 ## Current progress
 
 - Real data ingestion from Eurostat/ECB is wired up (`src/data_loader.py`).

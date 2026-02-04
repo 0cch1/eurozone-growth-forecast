@@ -46,7 +46,15 @@ def load_processed_dataset() -> pd.DataFrame:
 def run_demo(use_real_data: bool = True) -> None:
     """Run an end-to-end demo with real or synthetic data."""
     if use_real_data:
-        df = load_processed_dataset()
+        try:
+            df = load_processed_dataset()
+        except (FileNotFoundError, ValueError):
+            print(
+                "Processed dataset missing or empty. Run `python -m src.fetch_real_data` "
+                "then `python -m src.build_dataset`, or use synthetic data for this run."
+            )
+            use_real_data = False
+    if use_real_data:
         df = df.sort_values("year").reset_index(drop=True)
         df = build_minimal_features(
             df,
