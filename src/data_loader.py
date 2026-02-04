@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, Iterable, Optional
 
 from io import StringIO
 import gzip
@@ -53,6 +53,64 @@ def fetch_ecb_series(series_key: str, params: Optional[Dict[str, str]] = None) -
         "series_key": series_key,
         "params": params or {},
     }
+
+
+def fetch_eurostat_indicator(
+    dataset_id: str,
+    filters: Optional[Dict[str, str]],
+    since_time_period: Optional[str],
+) -> pd.DataFrame:
+    """Fetch a Eurostat dataset with fallback behavior."""
+    attempts = [
+        (filters, since_time_period),
+        (filters, None),
+        (None, since_time_period),
+        (None, None),
+    ]
+    last_error: Optional[Exception] = None
+    for attempt_filters, attempt_since in attempts:
+        try:
+            return fetch_eurostat_dataset(
+                dataset_id=dataset_id,
+                filters=attempt_filters,
+                since_time_period=attempt_since,
+            )
+        except (HTTPError, ValueError) as exc:
+            last_error = exc
+            continue
+    raise ValueError("Eurostat fetch failed after retries.") from last_error
+
+
+def fetch_indicators(
+    indicators: Iterable[Dict[str, object]],
+    eurostat_since: str = "2000",
+    ecb_start: str = "2000-01",
+) -> Dict[str, pd.DataFrame]:
+    """Fetch datasets described by indicator specs."""
+    datasets: Dict[str, pd.DataFrame] = {}
+    for indicator in indicators:
+        name = str(indicator["name"])
+        source = indicator["source"]
+        if source == "eurostat":
+            dataset_id = str(indicator["dataset_id"])
+            filters = indicator.get("filters")
+            df = fetch_eurostat_indicator(
+                dataset_id=dataset_id,
+                filters=filters if isinstance(filters, dict) else None,
+                since_time_period=eurostat_since,
+            )
+        elif source == "ecb":
+            flow_ref = str(indicator["flow_ref"])
+            series_key = str(indicator["series_key"])
+            df = fetch_ecb_series_csv(
+                flow_ref=flow_ref,
+                series_key=series_key,
+                start_period=ecb_start,
+            )
+        else:
+            raise ValueError(f"Unsupported source: {source}")
+        datasets[name] = df
+    return datasets
 
 
 def fetch_eurostat_dataset(
