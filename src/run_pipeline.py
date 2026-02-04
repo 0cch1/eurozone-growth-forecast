@@ -7,6 +7,7 @@ import pandas as pd
 from pathlib import Path
 
 from .evaluation import regression_metrics, time_series_cv_splits
+from .feature_engineering import build_minimal_features
 from .features import add_interactions, add_lag_features
 from .models import build_models
 from .preprocessing import fill_missing, standardize_features
@@ -47,7 +48,12 @@ def run_demo(use_real_data: bool = True) -> None:
     if use_real_data:
         df = load_processed_dataset()
         df = df.sort_values("year").reset_index(drop=True)
-        df = add_lag_features(df, columns=["usd_eur_rate"], lags=[1]).dropna()
+        df = build_minimal_features(
+            df,
+            target_col="gdp_growth",
+            lag_cols=["usd_eur_rate"],
+            diff_cols=["usd_eur_rate"],
+        )
     else:
         df = build_demo_dataset()
         df = fill_missing(df, method="ffill")
