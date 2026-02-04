@@ -40,6 +40,12 @@ To build the yearly EA dataset into `data/processed`, run:
 python -m src.build_dataset
 ```
 
+To compare baseline models on the processed dataset, run:
+
+```
+python -m src.compare_models
+```
+
 The default fetch uses:
 - Eurostat GDP growth dataset `tec00115` (filtered to `EA19`).
 - ECB SDW exchange rate series `EXR/M.USD.EUR.SP00.A`.
@@ -53,6 +59,7 @@ You can customize sources in `src/data_loader.py`.
 - Yearly EA-level dataset builder is available (`python -m src.build_dataset`).
 - Pipeline now supports running on processed real data.
 - Basic smoke tests and import setup are in place.
+- Indicator registry is defined in `src/indicators.py` and documented in `INDICATORS.md`.
 
 ## Notes
 
