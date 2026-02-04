@@ -1,9 +1,9 @@
-"""Compare baseline models on the processed dataset."""
+"""Compare baseline models on the processed dataset with optional visualization."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -74,11 +74,58 @@ def compare_models(n_splits: int = 3) -> pd.DataFrame:
     return pd.DataFrame(results).sort_values("rmse").reset_index(drop=True)
 
 
-def main() -> None:
-    """Entry point for CLI usage."""
+def plot_comparison(
+    results: pd.DataFrame,
+    save_path: Optional[Path] = None,
+    figsize: tuple[float, float] = (8, 4),
+    show: bool = False,
+) -> None:
+    """Plot MAE and RMSE comparison across models (bar chart)."""
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    models = results["model"].tolist()
+    x = range(len(models))
+
+    axes[0].bar(x, results["mae"], color="steelblue", edgecolor="black", linewidth=0.8)
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(models)
+    axes[0].set_ylabel("MAE")
+    axes[0].set_title("Mean Absolute Error (lower is better)")
+    axes[0].tick_params(axis="x", rotation=15)
+
+    axes[1].bar(x, results["rmse"], color="coral", edgecolor="black", linewidth=0.8)
+    axes[1].set_xticks(x)
+    axes[1].set_xticklabels(models)
+    axes[1].set_ylabel("RMSE")
+    axes[1].set_title("Root Mean Squared Error (lower is better)")
+    axes[1].tick_params(axis="x", rotation=15)
+
+    plt.tight_layout()
+    if save_path is not None:
+        save_path = Path(save_path)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"Saved comparison plot to {save_path}")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def main(save_plot: bool = True) -> None:
+    """Entry point for CLI usage: run comparison and optionally save plot."""
     results = compare_models()
     print("Model comparison (lower is better):")
     print(results.to_string(index=False))
+
+    if save_plot:
+        project_root = Path(__file__).resolve().parents[1]
+        plot_path = project_root / "data" / "processed" / "model_comparison.png"
+        try:
+            plot_comparison(results, save_path=plot_path)
+        except Exception as e:
+            print(f"Plot skipped ({e}). Install matplotlib to enable visualization.")
 
 
 if __name__ == "__main__":

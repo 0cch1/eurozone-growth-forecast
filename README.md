@@ -40,11 +40,14 @@ To build the yearly EA dataset into `data/processed`, run:
 python -m src.build_dataset
 ```
 
-To compare baseline models on the processed dataset, run:
+**Model comparison (with visualization):** To compare baseline models (linear, MLP, XGBoost) and get a bar-chart of MAE/RMSE:
 
 ```
+python -m src.build_dataset   # if not already done
 python -m src.compare_models
 ```
+
+The script prints a comparison table and saves `data/processed/model_comparison.png`. In code use `compare_models()` for the table and `plot_comparison(results, save_path=..., show=True)` to customize the plot.
 
 The default fetch uses:
 - Eurostat GDP growth dataset `tec00115` (filtered to `EA19`).
@@ -58,6 +61,7 @@ You can customize sources in `src/data_loader.py`.
 - Raw data download script is available (`python -m src.fetch_real_data`).
 - Yearly EA-level dataset builder is available (`python -m src.build_dataset`).
 - Pipeline now supports running on processed real data.
+- Model comparison with MAE/RMSE bar-chart visualization (`python -m src.compare_models`).
 - Basic smoke tests and import setup are in place.
 - Indicator registry is defined in `src/indicators.py` and documented in `INDICATORS.md`.
 
