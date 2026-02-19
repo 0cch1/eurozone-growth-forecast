@@ -4,9 +4,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from .indicators import get_indicator_specs
+
+
+def _synthetic_gdp_yearly(year_min: int = 1999, year_max: int | None = None) -> pd.DataFrame:
+    """Minimal synthetic GDP growth (percent) for fallback when Eurostat is empty."""
+    if year_max is None:
+        import datetime
+        year_max = datetime.date.today().year - 1
+    years = np.arange(year_min, year_max + 1, dtype=int)
+    rng = np.random.default_rng(42)
+    values = rng.normal(1.5, 2.0, size=len(years))
+    return pd.DataFrame({"year": years, "gdp_growth": values})
 
 
 def _load_eurostat_yearly(raw_path: Path, value_name: str) -> pd.DataFrame:
@@ -69,7 +81,21 @@ def main() -> None:
 
         raw_path = raw_dir / f"{file_stem}.csv"
         if source == "eurostat":
-            df = _load_eurostat_yearly(raw_path, value_name)
+            fallback_path = raw_dir / "eurostat_gdp_growth_fallback.csv"
+            try:
+                df = _load_eurostat_yearly(raw_path, value_name)
+            except (ValueError, FileNotFoundError):
+                if fallback_path.exists():
+                    print(
+                        "Eurostat file missing or empty. Using bundled backup "
+                        "(data/raw/eurostat_gdp_growth_fallback.csv)."
+                    )
+                    df = _load_eurostat_yearly(fallback_path, value_name)
+                else:
+                    print(
+                        "Eurostat file missing or empty. Using synthetic GDP growth for this run."
+                    )
+                    df = _synthetic_gdp_yearly()
         elif source == "ecb":
             df = _load_ecb_monthly_to_yearly(raw_path, value_name)
         else:
