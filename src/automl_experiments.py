@@ -67,13 +67,14 @@ def run_automl_baseline(
         estimator_list: Override list of FLAML estimators (e.g. ["rf", "xgboost"]).
 
     Returns:
-        Dict with mae, rmse, n_train, n_test, best_estimator (name).
+        Dict with mae, rmse, r2, n_train, n_test, best_estimator (name).
     """
     if not FLAML_AVAILABLE:
         return {
             "error": "FLAML not installed. Install with: pip install flaml",
             "mae": None,
             "rmse": None,
+            "r2": None,
         }
 
     df = _load_and_prepare()
@@ -116,6 +117,7 @@ def run_automl_baseline(
     out = {
         "mae": float(metrics["mae"]),
         "rmse": float(metrics["rmse"]),
+        "r2": float(metrics["r2"]),
         "n_train": n_train,
         "n_test": n_test,
         "best_estimator": getattr(automl, "best_estimator", "AutoML"),
@@ -136,6 +138,7 @@ def main() -> None:
     print("AutoML baseline (holdout):")
     print(f"  MAE  = {result['mae']:.4f}")
     print(f"  RMSE = {result['rmse']:.4f}")
+    print(f"  R²   = {result['r2']:.4f}")
     print(f"  Best estimator: {result.get('best_estimator', '?')}")
     print("Compare with: python -m src.compare_models")
 
