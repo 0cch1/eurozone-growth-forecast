@@ -30,7 +30,7 @@ def standardize_features(
     columns: Iterable[str],
     scaler: Optional[StandardScaler] = None,
 ) -> Tuple[pd.DataFrame, StandardScaler]:
-    """Standardize selected columns using z-score scaling.
+    """Standardise selected columns using z-score scaling.
 
     Args:
         df: Input dataframe.
