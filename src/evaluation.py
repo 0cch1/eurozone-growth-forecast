@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Iterable, Tuple
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
 
 
@@ -24,11 +24,12 @@ def time_series_cv_splits(n_samples: int, n_splits: int = 5) -> Iterable[Tuple[n
 
 
 def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
-    """Compute common regression metrics.
+    """Compute common regression metrics (PDD §4.4: MAE, RMSE, R²).
 
     Returns:
-        Dictionary with MAE and RMSE.
+        Dictionary with mae, rmse, r2.
     """
     mae = mean_absolute_error(y_true, y_pred)
     rmse = mean_squared_error(y_true, y_pred) ** 0.5
-    return {"mae": mae, "rmse": rmse}
+    r2 = r2_score(y_true, y_pred)
+    return {"mae": mae, "rmse": rmse, "r2": r2}

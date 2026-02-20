@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from .feature_engineering import build_minimal_features
-from .interpretation import local_explanation, pdp_plot, shap_summary
+from .interpretation import local_explanation, pdp_plot, permutation_importance, shap_summary
 from .models import build_models
 from .preprocessing import standardize_features
 
@@ -57,6 +57,19 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
         print(f"  SHAP summary: {summary['summary_plot_path']}")
     if summary.get("error"):
         print(f"  SHAP error: {summary['error']}")
+
+    # Permutation importance (PDD §4.5)
+    perm = permutation_importance(
+        model, X_arr, y,
+        feature_names=feature_cols,
+        save_path=out_path / f"permutation_importance_{model_name}.png",
+        n_repeats=10,
+        random_state=42,
+    )
+    if perm.get("perm_plot_path"):
+        print(f"  Permutation importance: {perm['perm_plot_path']}")
+    if perm.get("error"):
+        print(f"  Permutation error: {perm['error']}")
 
     # PDP for first two features (use scaled data; pass feature names via DataFrame for column index)
     X_for_pdp = pd.DataFrame(X_arr, columns=feature_cols)

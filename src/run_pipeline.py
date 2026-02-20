@@ -93,7 +93,7 @@ def run_demo(use_real_data: bool = True) -> None:
 
     print("Demo metrics:")
     for idx, metrics in enumerate(split_metrics, start=1):
-        print(f"Split {idx}: MAE={metrics['mae']:.3f}, RMSE={metrics['rmse']:.3f}")
+        print(f"Split {idx}: MAE={metrics['mae']:.3f}, RMSE={metrics['rmse']:.3f}, R²={metrics['r2']:.3f}")
 
 
 if __name__ == "__main__":

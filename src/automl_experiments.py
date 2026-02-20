@@ -18,6 +18,17 @@ try:
 except ImportError:
     AutoML = None  # type: ignore
 
+# Estimators that work out-of-the-box (sklearn) or are likely installed (xgboost)
+def _get_estimator_list() -> list[str]:
+    """Use rf + extra_tree always; add xgboost if installed (matches compare_models)."""
+    out = ["rf", "extra_tree"]
+    try:
+        import xgboost  # noqa: F401
+        out.append("xgboost")
+    except ImportError:
+        pass
+    return out
+
 
 def _load_and_prepare():
     """Same data pipeline as compare_models / run_interpretation."""
@@ -37,18 +48,23 @@ def _load_and_prepare():
 
 def run_automl_baseline(
     test_frac: float = 0.2,
-    time_budget: int = 120,
+    time_budget: int = 60,
     random_state: int = 42,
+    estimator_list: list[str] | None = None,
 ) -> dict:
     """Train FLAML AutoML on temporal train set and evaluate on holdout.
 
     Uses a single time-based split (last test_frac of samples as test) to match
     time-aware evaluation. Compare the returned MAE/RMSE with compare_models output.
 
+    Settings tuned for this project: small yearly panel, MAE metric, reproducible
+    seed; estimator_list defaults to rf + extra_tree (+ xgboost if installed).
+
     Args:
         test_frac: Fraction of samples for holdout (from the end).
-        time_budget: FLAML time budget in seconds.
+        time_budget: FLAML time budget in seconds (60 is enough for small data).
         random_state: Seed for reproducibility.
+        estimator_list: Override list of FLAML estimators (e.g. ["rf", "xgboost"]).
 
     Returns:
         Dict with mae, rmse, n_train, n_test, best_estimator (name).
@@ -79,6 +95,10 @@ def run_automl_baseline(
     y_train = y[train_idx]
     y_test = y[test_idx]
 
+    # Best for this project: MAE (matches compare_models), short budget (small n),
+    # only estimators that are installed (no LightGBM/CatBoost required)
+    if estimator_list is None:
+        estimator_list = _get_estimator_list()
     automl = AutoML()
     automl.fit(
         X_train,
@@ -88,6 +108,8 @@ def run_automl_baseline(
         metric="mae",
         seed=random_state,
         verbose=0,
+        estimator_list=estimator_list,
+        n_jobs=1,  # reproducible; increase if you want speed
     )
     preds = automl.predict(X_test)
     metrics = regression_metrics(y_test, preds)
@@ -107,7 +129,7 @@ def main() -> None:
         print("FLAML not installed. Install with: pip install flaml")
         return
     print("Running FLAML AutoML (time-based holdout, last 20% as test)...")
-    result = run_automl_baseline(test_frac=0.2, time_budget=120)
+    result = run_automl_baseline(test_frac=0.2, time_budget=60)
     if result.get("error"):
         print(result["error"])
         return

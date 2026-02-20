@@ -15,10 +15,15 @@ except ImportError:
     shap = None
 
 try:
-    from sklearn.inspection import PartialDependenceDisplay, partial_dependence
+    from sklearn.inspection import (
+        PartialDependenceDisplay,
+        partial_dependence,
+        permutation_importance as sklearn_permutation_importance,
+    )
 except ImportError:
     PartialDependenceDisplay = None  # type: ignore
     partial_dependence = None  # type: ignore
+    sklearn_permutation_importance = None  # type: ignore
 
 
 def _get_explainer(model: object, X: np.ndarray, feature_names: List[str]):
@@ -245,6 +250,81 @@ def local_explanation(
                         html_path = save_path.with_suffix(".html")
                         html.save_html(str(html_path))
                         out["local_plot_path"] = str(html_path)
+    except Exception as e:
+        out["error"] = str(e)
+    return out
+
+
+def permutation_importance(
+    model: object,
+    X: np.ndarray,
+    y: np.ndarray,
+    feature_names: Optional[Iterable[str]] = None,
+    save_path: Optional[Path] = None,
+    n_repeats: int = 10,
+    random_state: int = 42,
+) -> dict:
+    """Permutation importance (global feature importance, PDD §4.5).
+
+    Measures how much score degrades when a feature is randomly permuted.
+    Model-agnostic; works with any fitted regressor.
+
+    Args:
+        model: Fitted regressor with .predict().
+        X: Feature matrix.
+        y: Target vector.
+        feature_names: Optional names for features; used for plot and result.
+        save_path: If set, save bar chart of importances to this path.
+        n_repeats: Number of permutation repeats (default 10).
+        random_state: Seed for permutation shuffle.
+
+    Returns:
+        Dict with importances_mean, importances_std, feature_names, optional path.
+    """
+    out = {"feature_names": None, "importances_mean": None, "importances_std": None}
+    if sklearn_permutation_importance is None:
+        return out
+
+    X_arr = np.asarray(X)
+    if feature_names is None and hasattr(X, "columns"):
+        feature_names = list(X.columns)
+    else:
+        feature_names = list(feature_names) if feature_names else [f"x{i}" for i in range(X_arr.shape[1])]
+    out["feature_names"] = feature_names
+
+    try:
+        perm = sklearn_permutation_importance(
+            model,
+            X_arr,
+            y,
+            n_repeats=n_repeats,
+            random_state=random_state,
+            scoring="neg_mean_absolute_error",
+        )
+        out["importances_mean"] = perm.importances_mean.tolist()
+        out["importances_std"] = perm.importances_std.tolist()
+
+        if save_path is not None:
+            save_path = Path(save_path)
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(6, max(3, len(feature_names) * 0.35)))
+            idx = np.argsort(perm.importances_mean)
+            ax.barh(
+                range(len(feature_names)),
+                perm.importances_mean[idx],
+                xerr=perm.importances_std[idx],
+                color="steelblue",
+                capsize=3,
+            )
+            ax.set_yticks(range(len(feature_names)))
+            ax.set_yticklabels([feature_names[i] for i in idx])
+            ax.set_xlabel("Increase in MAE when feature is permuted (higher = more important)")
+            ax.set_title("Permutation importance (higher = more important)")
+            plt.tight_layout()
+            plt.savefig(save_path, dpi=150, bbox_inches="tight")
+            plt.close()
+            out["perm_plot_path"] = str(save_path)
     except Exception as e:
         out["error"] = str(e)
     return out
