@@ -2,7 +2,7 @@
 
 Modeling Eurozone economic growth with interpretable machine learning.
 
-**Delivery scope:** Minimum standard + one optional (AutoML). See [SCOPE.md](SCOPE.md) for the checklist. For environment, seeds, and run order, see [docs/Reproducibility.md](docs/Reproducibility.md).
+**Delivery scope:** Minimum standard + one optional (AutoML). For environment, seeds, and run order, see [docs/Reproducibility.md](docs/Reproducibility.md).
 
 ## Project structure
 
