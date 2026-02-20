@@ -29,3 +29,6 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local scope / checklist (optional: keep out of repo)
+SCOPE.md
