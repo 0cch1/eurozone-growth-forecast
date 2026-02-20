@@ -63,7 +63,7 @@ def _load_ecb_monthly_to_yearly(raw_path: Path, value_name: str) -> pd.DataFrame
 
 
 def main() -> None:
-    """Build a yearly processed dataset for modeling."""
+    """Build a yearly processed dataset for modelling."""
     project_root = Path(__file__).resolve().parents[1]
     raw_dir = project_root / "data" / "raw"
     processed_dir = project_root / "data" / "processed"

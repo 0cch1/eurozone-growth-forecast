@@ -60,7 +60,7 @@ def fetch_eurostat_indicator(
     filters: Optional[Dict[str, str]],
     since_time_period: Optional[str],
 ) -> pd.DataFrame:
-    """Fetch a Eurostat dataset with fallback behavior."""
+    """Fetch a Eurostat dataset with fallback behaviour."""
     attempts = [
         (filters, since_time_period),
         (filters, None),

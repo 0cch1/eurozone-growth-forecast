@@ -1,4 +1,4 @@
-"""Compare baseline models on the processed dataset with optional visualization."""
+"""Compare baseline models on the processed dataset with optional visualisation."""
 
 from __future__ import annotations
 
@@ -125,7 +125,7 @@ def main(save_plot: bool = True) -> None:
         try:
             plot_comparison(results, save_path=plot_path)
         except Exception as e:
-            print(f"Plot skipped ({e}). Install matplotlib to enable visualization.")
+            print(f"Plot skipped ({e}). Install matplotlib to enable visualisation.")
 
 
 if __name__ == "__main__":
