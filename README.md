@@ -2,6 +2,8 @@
 
 Modelling Eurozone economic growth with interpretable machine learning.
 
+**Delivery scope:** Minimum standard + one optional (AutoML). For environment, seeds, and run order, see [docs/Reproducibility.md](docs/Reproducibility.md).
+
 ## Project structure
 
 ```
@@ -9,6 +11,7 @@ eurozone-growth-forecast/
 ├── data/
 │   ├── raw/                 # Raw API extracts
 │   └── processed/           # Cleaned and feature-ready datasets
+├── docs/                    # Documentation (e.g. data dictionary)
 ├── notebooks/               # EDA and prototype experiments
 ├── src/                     # Core pipeline modules
 ├── tests/                   # Minimal smoke tests
@@ -87,7 +90,7 @@ pip install flaml
 python -m src.automl_experiments
 ```
 
-Results (MAE/RMSE) can be compared with `python -m src.compare_models` on branch `feature/model-comparison`.
+Results (MAE/RMSE) can be compared with `python -m src.compare_models`.
 
 ## Current progress
 
@@ -108,4 +111,4 @@ Results (MAE/RMSE) can be compared with `python -m src.compare_models` on branch
 ## Notes
 
 - `data_loader.py` includes minimal Eurostat/ECB fetch helpers (extend as needed).
-- `interpretation.py` implements SHAP (Tree/Linear/Kernel explainer), sklearn PDP, and local waterfall/force-style plots.
+- `interpretation.py` implements SHAP (Tree/Linear/Kernel explainer), sklearn PDP, permutation importance, and local waterfall/force-style plots.
