@@ -68,6 +68,11 @@ def build_map(
     df = df.copy()
     df["country_iso3"] = df["country"].map(ISO2_TO_ISO3)
     df = df.dropna(subset=["country_iso3"])
+    if df.empty:
+        raise ValueError(
+            "No countries in 'panel_country_yearly.csv' could be mapped from ISO-2 "
+            "to ISO-3. Check that country codes match the ISO2_TO_ISO3 mapping."
+        )
 
     if not all_years and year is not None:
         df = df[df["year"] == year]
