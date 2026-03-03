@@ -57,6 +57,34 @@ You can customise sources in `src/data_loader.py`.
 
 **Eurostat backup:** If the API returns no data, `python -m src.build_dataset` will use the bundled backup `data/raw/eurostat_gdp_growth_fallback.csv` (EA19 annual GDP growth, Eurostat-style, 1999–2024). You can replace this file with a fresh download from [Eurostat bulk/databrowser](https://ec.europa.eu/eurostat/databrowser/view/tec00115/default/table) if needed.
 
+## Main results and robustness outputs
+
+To generate the **main time-series cross-validation results** used in the report:
+
+```
+python -m src.build_dataset      # if not already done
+python -m src.main_results
+```
+
+This writes:
+
+- `results/main_cv_results.csv`: model-level MAE/RMSE from time-aware cross-validation.
+- `results/main_cv_results.png`: bar-chart visualisation of MAE/RMSE across models.
+
+To generate the **AutoML robustness result** (single time-based holdout, last 20% as test):
+
+```
+pip install flaml
+python -m src.automl_experiments
+```
+
+This writes:
+
+- `results/robustness_automl_holdout.csv`: MAE/RMSE and basic metadata (train/test sizes, best estimator).
+
+These outputs are intended to be referenced in the dissertation/report as the primary
+time-series CV result and a complementary robustness check respectively.
+
 ## Interpretability (XAI, PDD §4.5)
 
 After building the dataset and (optionally) comparing models, run SHAP summary, PDP, and local explanations for a chosen model:
@@ -87,7 +115,8 @@ pip install flaml
 python -m src.automl_experiments
 ```
 
-Results (MAE/RMSE) can be compared with `python -m src.compare_models` on branch `feature/model-comparison`.
+Results (MAE/RMSE) are also written to `results/robustness_automl_holdout.csv` and can be
+compared with the main CV table in `results/main_cv_results.csv`.
 
 ## Current progress
 

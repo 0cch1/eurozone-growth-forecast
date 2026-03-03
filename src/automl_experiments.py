@@ -19,6 +19,16 @@ except ImportError:
     AutoML = None  # type: ignore
 
 
+def _get_estimator_list() -> list[str]:
+    """Return a small, lightweight estimator list for FLAML.
+
+    Restrict to sklearn-based tree models to avoid heavy dependencies and
+    long runs (no LightGBM/XGBoost). This keeps the AutoML baseline fast
+    and easy to reproduce on typical student hardware.
+    """
+    return ["rf", "extra_tree"]
+
+
 def _load_and_prepare():
     """Same data pipeline as compare_models / run_interpretation."""
     project_root = Path(__file__).resolve().parents[1]
@@ -37,7 +47,7 @@ def _load_and_prepare():
 
 def run_automl_baseline(
     test_frac: float = 0.2,
-    time_budget: int = 120,
+    time_budget: int = 60,
     random_state: int = 42,
 ) -> dict:
     """Train FLAML AutoML on temporal train set and evaluate on holdout.
@@ -87,6 +97,8 @@ def run_automl_baseline(
         time_budget=time_budget,
         metric="mae",
         seed=random_state,
+        estimator_list=_get_estimator_list(),
+        n_jobs=1,
         verbose=0,
     )
     preds = automl.predict(X_test)
@@ -106,8 +118,11 @@ def main() -> None:
     if not FLAML_AVAILABLE:
         print("FLAML not installed. Install with: pip install flaml")
         return
-    print("Running FLAML AutoML (time-based holdout, last 20% as test)...")
-    result = run_automl_baseline(test_frac=0.2, time_budget=120)
+    print(
+        "Running FLAML AutoML (time-based holdout, last 20% as test, "
+        "estimators: rf, extra_tree)..."
+    )
+    result = run_automl_baseline(test_frac=0.2, time_budget=60)
     if result.get("error"):
         print(result["error"])
         return
@@ -116,6 +131,14 @@ def main() -> None:
     print(f"  RMSE = {result['rmse']:.4f}")
     print(f"  Best estimator: {result.get('best_estimator', '?')}")
     print("Compare with: python -m src.compare_models")
+
+    # Persist robustness result for reporting convenience.
+    project_root = Path(__file__).resolve().parents[1]
+    results_dir = project_root / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    out_path = results_dir / "robustness_automl_holdout.csv"
+    pd.DataFrame([result]).to_csv(out_path, index=False)
+    print(f"Saved AutoML robustness result to {out_path}")
 
 
 if __name__ == "__main__":
