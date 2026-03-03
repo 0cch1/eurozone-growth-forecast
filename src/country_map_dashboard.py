@@ -97,8 +97,13 @@ def build_map(
 
     if all_years:
         fig.layout.sliders[0].currentvalue.prefix = "Year: "
-        # Frame duration when using the play button (ms per year).
+        # Visual transition of the slider thumb when changing year.
         fig.layout.sliders[0].transition = dict(duration=2000)
+        # Frame duration when using the play button (ms per year).
+        if fig.layout.updatemenus and fig.layout.updatemenus[0].buttons:
+            play_button_args = fig.layout.updatemenus[0].buttons[0].args
+            if len(play_button_args) > 1 and "frame" in play_button_args[1]:
+                play_button_args[1]["frame"]["duration"] = 2000
 
     # World map (no scope restriction).
     fig.update_geos(showcountries=True)
