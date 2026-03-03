@@ -69,7 +69,8 @@ def compare_models(n_splits: int = 3) -> pd.DataFrame:
 
         mae = float(np.mean([m["mae"] for m in split_metrics]))
         rmse = float(np.mean([m["rmse"] for m in split_metrics]))
-        results.append({"model": name, "mae": mae, "rmse": rmse})
+        r2 = float(np.mean([m["r2"] for m in split_metrics]))
+        results.append({"model": name, "mae": mae, "rmse": rmse, "r2": r2})
 
     return pd.DataFrame(results).sort_values("rmse").reset_index(drop=True)
 
@@ -83,6 +84,7 @@ def plot_comparison(
     """Plot MAE and RMSE comparison across models (bar chart)."""
     import matplotlib.pyplot as plt
 
+    # Plot MAE and RMSE only; R² is in the results table (PDD §4.4 supplementary).
     fig, axes = plt.subplots(1, 2, figsize=figsize)
     models = results["model"].tolist()
     x = range(len(models))
