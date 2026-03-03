@@ -27,7 +27,6 @@ except ImportError:  # pragma: no cover - optional dependency
 ISO2_TO_ISO3 = {
     "DE": "DEU", "FR": "FRA", "IT": "ITA", "ES": "ESP", "NL": "NLD", "BE": "BEL",
     "AT": "AUT", "PT": "PRT", "IE": "IRL", "FI": "FIN", "GR": "GRC", "EL": "GRC",
-    "EA19": "EMU", "EA20": "EMU",
 }
 
 # Approximate (lat, lon) centroids for text labels on the map.
