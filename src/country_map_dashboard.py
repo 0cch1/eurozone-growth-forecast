@@ -62,8 +62,14 @@ def build_map(
         )
 
     df = pd.read_csv(panel_path)
-    if "year" not in df.columns or "country" not in df.columns:
-        raise ValueError("panel_country_yearly.csv must contain 'country' and 'year'.")
+    if (
+        "year" not in df.columns
+        or "country" not in df.columns
+        or "gdp_growth" not in df.columns
+    ):
+        raise ValueError(
+            "panel_country_yearly.csv must contain 'country', 'year', and 'gdp_growth'."
+        )
 
     df = df.copy()
     df["country_iso3"] = df["country"].map(ISO2_TO_ISO3)
