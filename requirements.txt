@@ -9,3 +9,4 @@ statsmodels
 pytest
 # Optional: symbolic regression (pip install pyoperon)
 # pyoperon>=0.1.0
+plotly

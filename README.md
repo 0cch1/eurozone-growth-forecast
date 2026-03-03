@@ -135,7 +135,9 @@ compared with the main CV table in `results/main_cv_results.csv`.
 
 ## Future work
 
-- **Country-level panel and map**: Extend data to per-country (e.g. DE, FR, IT, ES, …) and add a lightweight map visualisation (e.g. Plotly/Folium choropleth) to show GDP growth or model outputs by country. See PDD for panel scope.
+- **Country-level panel and map**: Extend data to per-country (e.g. DE, FR, IT, ES, …) and add a lightweight map visualisation (e.g. Plotly/Folium choropleth) to show GDP growth or model outputs by country. See PDD for panel scope. A minimal MVP is available via:
+  - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
+  - `python -m src.country_map_dashboard [YEAR]` → `results/country_gdp_growth_map.html`
 
 ## Notes
 
