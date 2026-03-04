@@ -1,2 +1,2 @@
-mae,rmse,n_train,n_test,best_estimator
-1.3597222222222223,1.4070815442689248,12,3,extra_tree
+mae,rmse,r2,n_train,n_test,best_estimator
+1.3597222222222223,1.4070815442689248,-0.02289932548794482,12,3,extra_tree

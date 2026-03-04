@@ -18,24 +18,12 @@ try:
 except ImportError:
     AutoML = None  # type: ignore
 
-# Estimators that work out-of-the-box (sklearn) or are likely installed (xgboost)
-def _get_estimator_list() -> list[str]:
-    """Use rf + extra_tree always; add xgboost if installed (matches compare_models)."""
-    out = ["rf", "extra_tree"]
-    try:
-        import xgboost  # noqa: F401
-        out.append("xgboost")
-    except ImportError:
-        pass
-    return out
-
-
 def _get_estimator_list() -> list[str]:
     """Return a small, lightweight estimator list for FLAML.
 
     Restrict to sklearn-based tree models to avoid heavy dependencies and
-    long runs (no LightGBM/XGBoost). This keeps the AutoML baseline fast
-    and easy to reproduce on typical student hardware.
+    long runs. This keeps the AutoML baseline fast and reproducible on
+    typical student hardware.
     """
     return ["rf", "extra_tree"]
 
@@ -67,8 +55,8 @@ def run_automl_baseline(
     Uses a single time-based split (last test_frac of samples as test) to match
     time-aware evaluation. Compare the returned MAE/RMSE with compare_models output.
 
-    Settings tuned for this project: small yearly panel, MAE metric, reproducible
-    seed; estimator_list defaults to rf + extra_tree (+ xgboost if installed).
+    Settings tuned for this project: small yearly panel, MAE metric,
+    reproducible seed; estimator_list defaults to rf + extra_tree.
 
     Args:
         test_frac: Fraction of samples for holdout (from the end).
@@ -110,6 +98,7 @@ def run_automl_baseline(
     # only estimators that are installed (no LightGBM/CatBoost required)
     if estimator_list is None:
         estimator_list = _get_estimator_list()
+    assert AutoML is not None
     automl = AutoML()
     automl.fit(
         X_train,
@@ -118,13 +107,11 @@ def run_automl_baseline(
         time_budget=time_budget,
         metric="mae",
         seed=random_state,
-        estimator_list=_get_estimator_list(),
-        n_jobs=1,
-        verbose=0,
         estimator_list=estimator_list,
         n_jobs=1,  # reproducible; increase if you want speed
+        verbose=0,
     )
-    preds = automl.predict(X_test)
+    preds = np.asarray(automl.predict(X_test), dtype=float)
     metrics = regression_metrics(y_test, preds)
     out = {
         "mae": float(metrics["mae"]),
@@ -153,7 +140,7 @@ def main() -> None:
     print("AutoML baseline (holdout):")
     print(f"  MAE  = {result['mae']:.4f}")
     print(f"  RMSE = {result['rmse']:.4f}")
-    print(f"  R²   = {result['r2']:.4f}")
+    print(f"  R2   = {result['r2']:.4f}")
     print(f"  Best estimator: {result.get('best_estimator', '?')}")
     print("Compare with: python -m src.compare_models")
 

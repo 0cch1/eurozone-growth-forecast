@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
@@ -31,10 +32,11 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
     """Train the chosen model on full data and produce SHAP summary, PDP, and one local explanation."""
     df = _load_and_prepare()
     feature_cols = [c for c in df.columns if c != "gdp_growth"]
-    X_df = df[feature_cols]
+    X_df = cast(pd.DataFrame, df[feature_cols])
     y = df["gdp_growth"].to_numpy()
-    X_scaled, scaler = standardize_features(X_df, columns=feature_cols)
-    X_arr = X_scaled.to_numpy()
+    X_scaled, _ = standardize_features(X_df, columns=feature_cols)
+    X_scaled_df = pd.DataFrame(X_scaled.to_numpy(), columns=feature_cols)
+    X_arr = X_scaled_df.to_numpy()
 
     models = build_models()
     if model_name not in models:
@@ -49,12 +51,16 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
     print(f"Model: {model_name}")
     # SHAP summary
     summary = shap_summary(
-        model, X_df, feature_names=feature_cols,
+        model,
+        X_arr,
+        feature_names=feature_cols,
         save_path=out_path / f"shap_summary_{model_name}.png",
         max_display=min(10, len(feature_cols)),
     )
     if summary.get("summary_plot_path"):
         print(f"  SHAP summary: {summary['summary_plot_path']}")
+    elif "shap_values" not in summary:
+        print("  SHAP summary skipped (install shap to enable).")
     if summary.get("error"):
         print(f"  SHAP error: {summary['error']}")
 
@@ -72,10 +78,13 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
         print(f"  Permutation error: {perm['error']}")
 
     # PDP for first two features (use scaled data; pass feature names via DataFrame for column index)
-    X_for_pdp = pd.DataFrame(X_arr, columns=feature_cols)
-    for feat in feature_cols[:2]:
+    X_for_pdp = X_arr
+    for feat_idx, feat in enumerate(feature_cols[:2]):
         pdp = pdp_plot(
-            model, X_for_pdp, [feat],
+            model,
+            X_for_pdp,
+            [str(feat_idx)],
+            feature_labels=feature_cols,
             save_path=out_path / f"pdp_{model_name}_{feat}.png",
             grid_resolution=30,
         )
@@ -84,9 +93,10 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
         if pdp.get("error"):
             print(f"  PDP error: {pdp['error']}")
 
-    # Local explanation for first test instance
+    # Local explanation for first test instance (use scaled X so model input is consistent)
+    X_for_local = X_arr
     local = local_explanation(
-        model, X_df, instance_idx=0, feature_names=feature_cols,
+        model, X_for_local, instance_idx=0, feature_names=feature_cols,
         save_path=out_path / f"local_{model_name}_instance0.png",
     )
     if local.get("local_plot_path"):
