@@ -67,10 +67,18 @@ def compare_models(n_splits: int = 3) -> pd.DataFrame:
             preds = model.predict(X_test.to_numpy())
             split_metrics.append(regression_metrics(y[test_idx], preds))
 
-        mae = float(np.mean([m["mae"] for m in split_metrics]))
-        rmse = float(np.mean([m["rmse"] for m in split_metrics]))
-        r2 = float(np.mean([m["r2"] for m in split_metrics]))
-        results.append({"model": name, "mae": mae, "rmse": rmse, "r2": r2})
+        mae_vals = [m["mae"] for m in split_metrics]
+        rmse_vals = [m["rmse"] for m in split_metrics]
+        r2_vals = [m["r2"] for m in split_metrics]
+        results.append({
+            "model": name,
+            "mae": float(np.mean(mae_vals)),
+            "mae_std": float(np.std(mae_vals)) if len(mae_vals) > 1 else 0.0,
+            "rmse": float(np.mean(rmse_vals)),
+            "rmse_std": float(np.std(rmse_vals)) if len(rmse_vals) > 1 else 0.0,
+            "r2": float(np.mean(r2_vals)),
+            "r2_std": float(np.std(r2_vals)) if len(r2_vals) > 1 else 0.0,
+        })
 
     return pd.DataFrame(results).sort_values("rmse").reset_index(drop=True)
 

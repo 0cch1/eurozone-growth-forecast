@@ -4,7 +4,7 @@ This module runs the baseline model comparison using time-aware
 cross-validation and writes canonical outputs under the ``results/``
 directory:
 
-- ``results/main_cv_results.csv``: table of model-level MAE and RMSE.
+- ``results/main_cv_results.csv``: table of model-level MAE, RMSE, R² (mean ± std over CV folds).
 - ``results/main_cv_results.png``: bar chart visualisation of MAE/RMSE.
 """
 
