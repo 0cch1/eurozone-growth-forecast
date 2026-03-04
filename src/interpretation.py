@@ -112,6 +112,21 @@ def shap_summary(
     return out
 
 
+def _feature_display_name(name: str) -> str:
+    """Human-readable axis label for known features."""
+    labels = {
+        "year": "Year",
+        "usd_eur_rate": "USD/EUR exchange rate",
+        "usd_eur_rate_lag1": "USD/EUR rate (lag 1 year)",
+        "usd_eur_rate_chg1": "USD/EUR rate change (1 year)",
+        "hicp_inflation": "HICP inflation (%)",
+        "unemployment_rate": "Unemployment rate (%)",
+        "short_term_rate": "Short-term interest rate (%)",
+        "gov_debt_gdp": "Government debt (% of GDP)",
+    }
+    return labels.get(name, name.replace("_", " ").title())
+
+
 def pdp_plot(
     model: object,
     X: pd.DataFrame,
@@ -156,13 +171,21 @@ def pdp_plot(
             save_path.parent.mkdir(parents=True, exist_ok=True)
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(6, 4))
+            # Pass DataFrame and feature names so axes show readable labels.
             PartialDependenceDisplay.from_estimator(
                 model,
-                X_arr,
-                features=col_idx,
+                X,
+                features=features,
                 grid_resolution=grid_resolution,
                 ax=ax,
             )
+            if len(features) == 1:
+                feat_label = _feature_display_name(features[0])
+                ax.set_xlabel(feat_label)
+                ax.set_ylabel("Predicted GDP growth (%)")
+                ax.set_title(f"Partial dependence: effect of {feat_label} on prediction")
+                ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.2f}"))
+            plt.tight_layout()
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
             plt.close()
             out["pdp_plot_path"] = str(save_path)
@@ -308,19 +331,26 @@ def permutation_importance(
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(figsize=(6, max(3, len(feature_names) * 0.35)))
-            idx = np.argsort(perm.importances_mean)
+            # sklearn returns change in neg_MAE (negative when permuting hurts); show MAE increase.
+            mean_inc = -np.asarray(perm.importances_mean)
+            std_inc = np.asarray(perm.importances_std)
+            fig, ax = plt.subplots(figsize=(6, max(3, len(feature_names) * 0.4)))
+            idx = np.argsort(mean_inc)[::-1]  # most important first (top)
+            y_pos = range(len(feature_names))
             ax.barh(
-                range(len(feature_names)),
-                perm.importances_mean[idx],
-                xerr=perm.importances_std[idx],
+                y_pos,
+                mean_inc[idx],
+                xerr=std_inc[idx],
                 color="steelblue",
                 capsize=3,
+                edgecolor="black",
+                linewidth=0.8,
             )
-            ax.set_yticks(range(len(feature_names)))
-            ax.set_yticklabels([feature_names[i] for i in idx])
-            ax.set_xlabel("Increase in MAE when feature is permuted (higher = more important)")
-            ax.set_title("Permutation importance (higher = more important)")
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels([_feature_display_name(feature_names[i]) for i in idx])
+            ax.set_xlabel("Increase in MAE when feature is permuted")
+            ax.set_title("Feature importance (permutation)\nHigher bar = feature matters more for predictions")
+            ax.axvline(0, color="gray", linewidth=0.8, linestyle="-")
             plt.tight_layout()
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
             plt.close()
