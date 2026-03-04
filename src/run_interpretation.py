@@ -5,10 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
+import numpy as np
 import pandas as pd
 
 from .feature_engineering import build_minimal_features
-from .interpretation import local_explanation, pdp_plot, permutation_importance, shap_summary
+from .interpretation import (
+    feature_display_name,
+    local_explanation,
+    pdp_plot,
+    permutation_importance,
+    shap_summary,
+)
 from .models import build_models
 from .preprocessing import standardize_features
 
@@ -43,7 +50,7 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
         print(f"Unknown model {model_name}. Choose from: {list(models.keys())}")
         return
     model = models[model_name]
-    model.fit(X_arr, y)
+    model.fit(X_scaled_df, y)
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -52,10 +59,11 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
     # SHAP summary
     summary = shap_summary(
         model,
-        X_arr,
+        X_scaled_df,
         feature_names=feature_cols,
         save_path=out_path / f"shap_summary_{model_name}.png",
         max_display=min(10, len(feature_cols)),
+        title=f"SHAP summary ({model_name})",
     )
     if summary.get("summary_plot_path"):
         print(f"  SHAP summary: {summary['summary_plot_path']}")
@@ -66,7 +74,7 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
 
     # Permutation importance (PDD §4.5)
     perm = permutation_importance(
-        model, X_arr, y,
+        model, X_scaled_df, y,
         feature_names=feature_cols,
         save_path=out_path / f"permutation_importance_{model_name}.png",
         n_repeats=10,
@@ -77,13 +85,23 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
     if perm.get("error"):
         print(f"  Permutation error: {perm['error']}")
 
-    # PDP for first two features (use scaled data; pass feature names via DataFrame for column index)
-    X_for_pdp = X_arr
-    for feat_idx, feat in enumerate(feature_cols[:2]):
+    # PDP for two most important features.
+    X_for_pdp = X_scaled_df
+    pdp_feature_indices = list(range(min(2, len(feature_cols))))
+    imp_raw = perm.get("importances_mean")
+    if isinstance(imp_raw, list) and len(imp_raw) == len(feature_cols):
+        mae_increase = -np.asarray(imp_raw, dtype=float)
+        pdp_feature_indices = np.argsort(mae_increase)[::-1][: min(2, len(feature_cols))].tolist()
+
+    chosen_feats = [feature_cols[i] for i in pdp_feature_indices]
+    print(f"  PDP features: {', '.join(feature_display_name(f) for f in chosen_feats)}")
+
+    for feat_idx in pdp_feature_indices:
+        feat = feature_cols[feat_idx]
         pdp = pdp_plot(
             model,
             X_for_pdp,
-            [str(feat_idx)],
+            [feat],
             feature_labels=feature_cols,
             save_path=out_path / f"pdp_{model_name}_{feat}.png",
             grid_resolution=30,
@@ -94,7 +112,7 @@ def main(model_name: str = "linear", out_dir: str = "data/processed/figures") ->
             print(f"  PDP error: {pdp['error']}")
 
     # Local explanation for first test instance (use scaled X so model input is consistent)
-    X_for_local = X_arr
+    X_for_local = X_scaled_df
     local = local_explanation(
         model, X_for_local, instance_idx=0, feature_names=feature_cols,
         save_path=out_path / f"local_{model_name}_instance0.png",

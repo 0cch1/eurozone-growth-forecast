@@ -77,6 +77,7 @@ def shap_summary(
     feature_names: Optional[Iterable[str]] = None,
     save_path: Optional[Path] = None,
     max_display: int = 10,
+    title: Optional[str] = None,
 ) -> dict[str, Any]:
     """Compute SHAP values and plot summary (global explanation).
 
@@ -125,6 +126,13 @@ def shap_summary(
                 max_display=max_display,
                 show=False,
             )
+            ax = mplt.gca()
+            ax.set_xlabel(
+                "SHAP value (pp of GDP growth)",
+                fontsize=10,
+            )
+            plot_title = title or "SHAP Summary"
+            ax.set_title(plot_title, fontsize=11, fontweight="bold")
             mplt.savefig(save_path, dpi=150, bbox_inches="tight")
             mplt.close()
             out["summary_plot_path"] = str(save_path)
@@ -134,18 +142,23 @@ def shap_summary(
 
 
 def _feature_display_name(name: str) -> str:
-    """Human-readable axis label for known features."""
+    """Human-readable axis label for known features (used in PDP, permutation, local explanation)."""
     labels = {
         "year": "Year",
-        "usd_eur_rate": "USD/EUR exchange rate",
-        "usd_eur_rate_lag1": "USD/EUR rate (lag 1 year)",
-        "usd_eur_rate_chg1": "USD/EUR rate change (1 year)",
-        "hicp_inflation": "HICP inflation (%)",
-        "unemployment_rate": "Unemployment rate (%)",
-        "short_term_rate": "Short-term interest rate (%)",
-        "gov_debt_gdp": "Government debt (% of GDP)",
+        "usd_eur_rate": "FX level (USD/EUR)",
+        "usd_eur_rate_lag1": "FX level (USD/EUR, t-1)",
+        "usd_eur_rate_chg1": "FX change (1y)",
+        "hicp_inflation": "HICP inflation",
+        "unemployment_rate": "Unemployment rate",
+        "short_term_rate": "Short-term rate",
+        "gov_debt_gdp": "Debt-to-GDP ratio",
     }
     return labels.get(name, name.replace("_", " ").title())
+
+
+def feature_display_name(name: str) -> str:
+    """Public helper to map raw feature names to thesis-style labels."""
+    return _feature_display_name(name)
 
 
 def pdp_plot(
@@ -173,17 +186,29 @@ def pdp_plot(
         return out
 
     X_input = X
+    pd_features: List[str | int]
     if isinstance(X, pd.DataFrame):
-        col_idx = [list(cast(pd.DataFrame, X).columns).index(f) for f in features]
+        cols = list(cast(pd.DataFrame, X).columns)
+        pd_features = []
+        col_idx = []
+        for f in features:
+            if f in cols:
+                pd_features.append(f)
+                col_idx.append(cols.index(f))
+            else:
+                i = int(f)
+                pd_features.append(cols[i])
+                col_idx.append(i)
     else:
         X_input = np.asarray(X)
+        pd_features = [int(f) for f in features]
         col_idx = [int(f) for f in features]  # indices when X is array
 
     try:
         pd_avg, grid_vals = partial_dependence(
             model,
             X_input,
-            features=col_idx,
+            features=pd_features,
             grid_resolution=grid_resolution,
         )
         out["grid_values"] = [np.asarray(g).tolist() for g in grid_vals]
@@ -195,14 +220,23 @@ def pdp_plot(
             import matplotlib.pyplot as plt
             from matplotlib.ticker import FuncFormatter
             fig, ax = plt.subplots(figsize=(6, 4))
-            # Pass DataFrame and feature names so axes show readable labels.
-            PartialDependenceDisplay.from_estimator(
+            disp = PartialDependenceDisplay.from_estimator(
                 model,
                 X_input,
-                features=col_idx,
+                features=pd_features,
                 grid_resolution=grid_resolution,
                 ax=ax,
             )
+            # Hide decile vertical lines (irregular vertical ticks) so the plot is cleaner.
+            for attr in ("deciles_vlines_", "vlines_"):
+                if hasattr(disp, attr):
+                    vlines = getattr(disp, attr)
+                    if hasattr(plt, "setp") and vlines is not None:
+                        try:
+                            plt.setp(vlines, visible=False)
+                        except Exception:
+                            pass
+                    break
             if len(features) == 1:
                 feat_key: str
                 if feature_labels is not None and len(feature_labels) > col_idx[0]:
@@ -210,10 +244,11 @@ def pdp_plot(
                 else:
                     feat_key = str(features[0])
                 feat_label = _feature_display_name(feat_key)
-                ax.set_xlabel(feat_label)
-                ax.set_ylabel("Predicted GDP growth (%)")
-                ax.set_title(f"Partial dependence: effect of {feat_label} on prediction")
+                ax.set_xlabel(feat_label, fontsize=11)
+                ax.set_ylabel("Predicted GDP growth (%)", fontsize=11)
+                ax.set_title(f"Partial Dependence: {feat_label}", fontsize=12, fontweight="bold")
                 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
+                ax.grid(True, alpha=0.3)
             plt.tight_layout()
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
             plt.close()
@@ -232,21 +267,34 @@ def _save_local_explanation_barchart(
 ) -> None:
     """Save a bar chart of SHAP contributions for one instance (fallback when waterfall fails)."""
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
 
     sv = np.asarray(shap_values).flatten()
-    n = len(feature_names)
-    labels = [_feature_display_name(f) for f in feature_names]
-    colors = ["steelblue" if v >= 0 else "coral" for v in sv]
+    order = np.argsort(np.abs(sv))[::-1]
+    sv = sv[order]
+    labels = [_feature_display_name(feature_names[i]) for i in order]
+    n = len(labels)
+    colors = ["#2ecc71" if v >= 0 else "#e74c3c" for v in sv]  # green = push up, red = push down
     y_pos = range(n)
-    fig, ax = plt.subplots(figsize=(6, max(3, n * 0.4)))
-    ax.barh(y_pos, sv, color=colors, edgecolor="black", linewidth=0.6)
+    fig, ax = plt.subplots(figsize=(7, max(3.5, n * 0.45)))
+    ax.barh(y_pos, sv, color=colors, edgecolor="black", linewidth=0.5)
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(labels)
-    ax.set_xlabel("SHAP contribution to prediction")
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.set_xlabel(
+        "Contribution to predicted GDP growth (pp)",
+        fontsize=11,
+    )
     ax.axvline(0, color="gray", linewidth=0.8, linestyle="-")
     ax.set_title(
-        f"Local explanation (instance)\nBaseline = {base_value:.2f}%  →  Prediction = {prediction:.2f}%"
+        f"Local Feature Contributions\nBaseline {base_value:.2f}% -> Prediction {prediction:.2f}%",
+        fontsize=12,
+        fontweight="bold",
     )
+    legend_handles = [
+        Patch(facecolor="#2ecc71", edgecolor="black", label="Pushes prediction up"),
+        Patch(facecolor="#e74c3c", edgecolor="black", label="Pushes prediction down"),
+    ]
+    ax.legend(handles=legend_handles, loc="lower right", fontsize=9)
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
@@ -337,35 +385,15 @@ def local_explanation(
         if save_path is not None:
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
-            saved = False
-            # Try SHAP waterfall first (PNG).
-            try:
-                import matplotlib.pyplot as plt
-                shap.waterfall_plot(
-                    shap.Explanation(
-                        values=sv,
-                        base_values=base,
-                        data=x.flatten(),
-                        feature_names=feature_names,
-                    ),
-                    show=False,
-                )
-                plt.savefig(save_path, dpi=150, bbox_inches="tight")
-                plt.close()
-                out["local_plot_path"] = str(save_path)
-                saved = True
-            except Exception:
-                pass
-            # Fallback: always produce a PNG bar chart of SHAP contributions for this instance.
-            if not saved:
-                _save_local_explanation_barchart(
-                    shap_values=sv,
-                    feature_names=list(feature_names),
-                    base_value=base,
-                    prediction=pred,
-                    save_path=save_path,
-                )
-                out["local_plot_path"] = str(save_path)
+            # Use our bar chart for PNG: clear title, legend, and display names (same style as linear).
+            _save_local_explanation_barchart(
+                shap_values=sv,
+                feature_names=list(feature_names),
+                base_value=base,
+                prediction=pred,
+                save_path=save_path,
+            )
+            out["local_plot_path"] = str(save_path)
     except Exception as e:
         out["error"] = str(e)
     return out
@@ -442,10 +470,17 @@ def permutation_importance(
                 linewidth=0.8,
             )
             ax.set_yticks(y_pos)
-            ax.set_yticklabels([_feature_display_name(feature_names[i]) for i in idx])
-            ax.set_xlabel("Increase in MAE when feature is permuted")
-            ax.set_title("Feature importance (permutation)\nHigher bar = feature matters more for predictions")
+            ax.set_yticklabels([_feature_display_name(feature_names[i]) for i in idx], fontsize=10)
+            ax.set_xlabel(
+                "MAE increase after permutation",
+                fontsize=11,
+            )
+            ax.set_title("Permutation Importance", fontsize=12, fontweight="bold")
             ax.axvline(0, color="gray", linewidth=0.8, linestyle="-")
+            max_x = float(np.nanmax(mean_inc[idx])) if len(mean_inc) else 0.0
+            pad = max(0.02 * max(1.0, max_x), 0.005)
+            for row, val in enumerate(mean_inc[idx]):
+                ax.text(float(val) + pad, row, f"{float(val):.3f}", va="center", fontsize=8)
             plt.tight_layout()
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
             plt.close()
