@@ -225,17 +225,17 @@ def main() -> None:
     if not datasets:
         raise RuntimeError("No indicators loaded; cannot build panel.")
 
-    # Merge on year (inner join → only years present in ALL loaded indicators)
+    # Merge on year — left join keeps all years from GDP, then ffill/bfill
+    # handles indicators with shorter coverage (e.g. unemployment starts later).
     panel = datasets[0]
     for df in datasets[1:]:
         panel = panel.merge(df, on="year", how="left")
     panel = panel.sort_values("year").reset_index(drop=True)
 
-    # Report coverage
     total_missing = panel.isnull().sum()
     cols_with_gaps = total_missing[total_missing > 0]
     if not cols_with_gaps.empty:
-        print("\nMissing values per column (left-joined; will be forward-filled by pipeline):")
+        print("\nMissing values per column (will be forward/backward-filled by modelling pipeline):")
         for col, n in cols_with_gaps.items():
             print(f"  {col}: {n} missing")
 

@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 
 from .evaluation import regression_metrics, time_series_cv_splits
-from .feature_engineering import build_minimal_features
+from .feature_engineering import build_full_features
 from .features import add_interactions, add_lag_features
 from .models import build_models
 from .preprocessing import fill_missing, standardize_features
@@ -56,12 +56,8 @@ def run_demo(use_real_data: bool = True) -> None:
             use_real_data = False
     if use_real_data:
         df = df.sort_values("year").reset_index(drop=True)
-        df = build_minimal_features(
-            df,
-            target_col="gdp_growth",
-            lag_cols=["usd_eur_rate"],
-            diff_cols=["usd_eur_rate"],
-        )
+        df = df.ffill().bfill()
+        df = build_full_features(df, target_col="gdp_growth")
     else:
         df = build_demo_dataset()
         df = fill_missing(df, method="ffill")
@@ -69,7 +65,7 @@ def run_demo(use_real_data: bool = True) -> None:
         df = add_interactions(df, columns=["inflation", "unemployment"])
         df = df.dropna()
 
-    feature_cols = [col for col in df.columns if col != "gdp_growth"]
+    feature_cols = [col for col in df.columns if col not in ("gdp_growth", "year")]
     X_df = df[feature_cols]
     y = df["gdp_growth"].to_numpy()
 
@@ -93,7 +89,7 @@ def run_demo(use_real_data: bool = True) -> None:
 
     print("Demo metrics:")
     for idx, metrics in enumerate(split_metrics, start=1):
-        print(f"Split {idx}: MAE={metrics['mae']:.3f}, RMSE={metrics['rmse']:.3f}, R²={metrics['r2']:.3f}")
+        print(f"Split {idx}: MAE={metrics['mae']:.3f}, RMSE={metrics['rmse']:.3f}, R2={metrics['r2']:.3f}")
 
 
 if __name__ == "__main__":

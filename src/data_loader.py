@@ -21,39 +21,6 @@ EUROSTAT_BULK_BASE_URL = (
 ECB_BASE_URL = "https://data-api.ecb.europa.eu/service/data"
 
 
-def fetch_eurostat_series(series_id: str, params: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-    """Placeholder for Eurostat API fetch.
-
-    Args:
-        series_id: Eurostat series identifier.
-        params: Optional query parameters.
-
-    Returns:
-        A dictionary representing raw API payload (stub).
-    """
-    return {
-        "source": "eurostat",
-        "series_id": series_id,
-        "params": params or {},
-    }
-
-
-def fetch_ecb_series(series_key: str, params: Optional[Dict[str, str]] = None) -> Dict[str, str]:
-    """Placeholder for ECB API fetch.
-
-    Args:
-        series_key: ECB SDW series key.
-        params: Optional query parameters.
-
-    Returns:
-        A dictionary representing raw API payload (stub).
-    """
-    return {
-        "source": "ecb",
-        "series_key": series_key,
-        "params": params or {},
-    }
-
 
 def fetch_eurostat_indicator(
     dataset_id: str,
@@ -319,51 +286,3 @@ def save_raw_dataset(df: pd.DataFrame, output_path: str) -> None:
     df.to_csv(output_path, index=False)
 
 
-def fetch_default_indicators(
-    eurostat_since: str = "2000",
-    ecb_start: str = "2000-01",
-) -> Dict[str, pd.DataFrame]:
-    """Fetch default Eurostat GDP growth and an ECB FX series.
-
-    Returns:
-        Dictionary with raw dataframes keyed by indicator name.
-    """
-    eurostat_attempts = [
-        ({"unit": "PC_GDP", "geo": "EA20"}, eurostat_since),
-        ({"unit": "PC_GDP", "geo": "EA19"}, eurostat_since),
-        ({"unit": "PC_GDP", "geo": "EA20"}, None),
-        ({"unit": "PC_GDP", "geo": "EA19"}, None),
-        (None, eurostat_since),
-        (None, None),
-    ]
-    last_error: Optional[Exception] = None
-    eurostat_df = None
-    for filters, since_time in eurostat_attempts:
-        try:
-            eurostat_df = fetch_eurostat_dataset(
-                dataset_id="tec00115",
-                filters=filters,
-                since_time_period=since_time,
-            )
-            break
-        except (HTTPError, ValueError) as exc:
-            last_error = exc
-            continue
-    if eurostat_df is None:
-        raise ValueError("Eurostat fetch failed after retries.") from last_error
-
-    if "geo" in eurostat_df.columns:
-        if "EA20" in eurostat_df["geo"].unique():
-            eurostat_df = eurostat_df[eurostat_df["geo"] == "EA20"]
-        elif "EA19" in eurostat_df["geo"].unique():
-            eurostat_df = eurostat_df[eurostat_df["geo"] == "EA19"]
-
-    if "unit" in eurostat_df.columns:
-        if "PC_GDP" in eurostat_df["unit"].unique():
-            eurostat_df = eurostat_df[eurostat_df["unit"] == "PC_GDP"]
-    ecb_df = fetch_ecb_series_csv(
-        flow_ref="EXR",
-        series_key="M.USD.EUR.SP00.A",
-        start_period=ecb_start,
-    )
-    return {"eurostat_gdp_growth": eurostat_df, "ecb_exr_usd_eur": ecb_df}

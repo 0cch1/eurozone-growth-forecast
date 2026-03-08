@@ -123,23 +123,27 @@ compared with the main CV table in `results/main_cv_results.csv`.
 
 ## Current progress
 
-- Real data ingestion from Eurostat/ECB is wired up (`src/data_loader.py`).
-- Raw data download script and yearly EA-level dataset builder (`python -m src.fetch_real_data`, `python -m src.build_dataset`).
-- Pipeline runs on processed real data (`python -m src.run_pipeline`).
-- Model comparison with MAE/RMSE bar-chart visualisation (`python -m src.compare_models`).
-- XAI: SHAP summary, PDP, and local explanations in `src/interpretation.py`; runner `python -m src.run_interpretation <model>`.
-- Optional symbolic regression (Py-OPERON) in `models.py` when installed.
-- Optional AutoML baseline: `python -m src.automl_experiments` (requires `pip install flaml`).
-- Basic smoke tests and import setup are in place.
-- Indicator registry is defined in `src/indicators.py` and documented in `INDICATORS.md`.
+- **Data ingestion:** 6 macroeconomic indicators from Eurostat and ECB (`src/indicators.py`, `INDICATORS.md`).
+- **Dataset build:** Yearly euro-area panel with lag and change features (`python -m src.build_dataset`).
+- **Model comparison:** Ridge, MLP, XGBoost with time-series CV; MAE, RMSE, R² (`python -m src.main_results`).
+- **Interpretability (XAI):** SHAP summary, PDP, permutation importance, and local explanations (`python -m src.run_interpretation <model>`).
+- **Country-level visualisation:** Country GDP growth panel for 11 euro-area countries + interactive Plotly choropleth map with year slider:
+  - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
+  - `python -m src.country_map_dashboard [YEAR]` → `results/country_gdp_growth_map.html`
+- **AutoML robustness:** FLAML AutoML baseline (`python -m src.automl_experiments`).
+- **Documentation:** Data dictionary, reproducibility guide, indicator registry.
+- **Tests:** Smoke tests in `tests/`.
 
 ## Future work
 
-- **Country-level panel and map**: Extend data to per-country (e.g. DE, FR, IT, ES, …) and add a lightweight map visualisation (e.g. Plotly/Folium choropleth) to show GDP growth or model outputs by country. See PDD for panel scope. A minimal MVP is available via:
-  - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
-  - `python -m src.country_map_dashboard [YEAR]` → `results/country_gdp_growth_map.html`
+- Rolling/expanding window evaluation as an alternative to fixed-fold time-series CV.
+- Additional model families (e.g. GAM, Lasso, polynomial regression).
+- Sub-period robustness analysis (e.g. pre/post financial crisis).
+- Country-level model predictions overlaid on the choropleth map.
+- Symbolic regression (Py-OPERON) for formula-like interpretable models.
 
 ## Notes
 
 - `data_loader.py` includes minimal Eurostat/ECB fetch helpers (extend as needed).
-- `interpretation.py` implements SHAP (Tree/Linear/Kernel explainer), sklearn PDP, permutation importance, and local waterfall/force-style plots.
+- `interpretation.py` implements SHAP (Tree/Linear/Kernel explainer), sklearn PDP, permutation importance, and local explanation bar charts.
+- Full reproducibility instructions are in [docs/Reproducibility.md](docs/Reproducibility.md).

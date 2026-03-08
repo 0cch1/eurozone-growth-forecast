@@ -119,10 +119,11 @@ def shap_summary(
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             import matplotlib.pyplot as mplt
+            display_names = [_feature_display_name(f) for f in feature_names]
             shap.summary_plot(
                 shap_values,
                 X_arr,
-                feature_names=feature_names,
+                feature_names=display_names,
                 max_display=max_display,
                 show=False,
             )
@@ -144,14 +145,23 @@ def shap_summary(
 def _feature_display_name(name: str) -> str:
     """Human-readable axis label for known features (used in PDP, permutation, local explanation)."""
     labels = {
-        "year": "Year",
-        "usd_eur_rate": "FX level (USD/EUR)",
-        "usd_eur_rate_lag1": "FX level (USD/EUR, t-1)",
-        "usd_eur_rate_chg1": "FX change (1y)",
-        "hicp_inflation": "HICP inflation",
-        "unemployment_rate": "Unemployment rate",
-        "short_term_rate": "Short-term rate",
-        "gov_debt_gdp": "Debt-to-GDP ratio",
+        "year": "Calendar year",
+        # --- Raw level indicators ---
+        "usd_eur_rate": "USD/EUR exchange rate",
+        "hicp_inflation": "HICP inflation (%)",
+        "unemployment_rate": "Unemployment rate (%)",
+        "short_term_rate": "Short-term interest rate (%)",
+        "gov_debt_gdp": "Government debt (% of GDP)",
+        # --- Lag features (previous year) ---
+        "usd_eur_rate_lag1": "USD/EUR rate (previous year)",
+        "hicp_inflation_lag1": "HICP inflation (previous year)",
+        "unemployment_rate_lag1": "Unemployment rate (previous year)",
+        "short_term_rate_lag1": "Short-term rate (previous year)",
+        "gov_debt_gdp_lag1": "Government debt (previous year)",
+        # --- Change features (year-on-year) ---
+        "usd_eur_rate_chg1": "USD/EUR rate change (year-on-year)",
+        "hicp_inflation_chg1": "HICP inflation change (year-on-year)",
+        "short_term_rate_chg1": "Short-term rate change (year-on-year)",
     }
     return labels.get(name, name.replace("_", " ").title())
 
@@ -488,14 +498,3 @@ def permutation_importance(
     except Exception as e:
         out["error"] = str(e)
     return out
-
-
-# Backward compatibility: keep placeholders as thin wrappers
-def shap_summary_placeholder(model: object, X: pd.DataFrame, feature_names: Iterable[str]) -> dict:
-    """Legacy name: calls shap_summary (no plot)."""
-    return shap_summary(model, X, feature_names=feature_names)
-
-
-def pdp_placeholder(feature: str) -> str:
-    """Legacy placeholder; use pdp_plot() for real PDPs."""
-    return f"PDP for {feature}"

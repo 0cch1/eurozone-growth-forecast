@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from .evaluation import regression_metrics
-from .feature_engineering import build_minimal_features
+from .feature_engineering import build_full_features
 from .preprocessing import standardize_features
 
 FLAML_AVAILABLE = False
@@ -35,12 +35,8 @@ def _load_and_prepare():
     if not path.exists():
         raise FileNotFoundError("Run python -m src.build_dataset first.")
     df = pd.read_csv(path).sort_values("year").reset_index(drop=True)
-    df = build_minimal_features(
-        df,
-        target_col="gdp_growth",
-        lag_cols=["usd_eur_rate"],
-        diff_cols=["usd_eur_rate"],
-    )
+    df = df.ffill().bfill()
+    df = build_full_features(df, target_col="gdp_growth")
     return df
 
 
@@ -76,7 +72,7 @@ def run_automl_baseline(
         }
 
     df = _load_and_prepare()
-    feature_cols = [c for c in df.columns if c != "gdp_growth"]
+    feature_cols = [c for c in df.columns if c not in ("gdp_growth", "year")]
     X_df = df[feature_cols]
     y = df["gdp_growth"].to_numpy()
     n = len(y)
