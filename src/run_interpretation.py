@@ -8,7 +8,7 @@ from typing import cast
 import numpy as np
 import pandas as pd
 
-from .feature_engineering import build_minimal_features
+from .feature_engineering import build_full_features
 from .interpretation import (
     feature_display_name,
     local_explanation,
@@ -26,19 +26,16 @@ def _load_and_prepare():
     if not path.exists():
         raise FileNotFoundError("Run python -m src.build_dataset first.")
     df = pd.read_csv(path).sort_values("year").reset_index(drop=True)
-    df = build_minimal_features(
-        df,
-        target_col="gdp_growth",
-        lag_cols=["usd_eur_rate"],
-        diff_cols=["usd_eur_rate"],
-    )
+    df = df.ffill().bfill()
+    df = build_full_features(df, target_col="gdp_growth")
     return df
 
 
 def main(model_name: str = "linear", out_dir: str = "data/processed/figures") -> None:
     """Train the chosen model on full data and produce SHAP summary, PDP, and one local explanation."""
     df = _load_and_prepare()
-    feature_cols = [c for c in df.columns if c != "gdp_growth"]
+    # Exclude 'year' from features — it is a time index, not a predictor.
+    feature_cols = [c for c in df.columns if c not in ("gdp_growth", "year")]
     X_df = cast(pd.DataFrame, df[feature_cols])
     y = df["gdp_growth"].to_numpy()
     X_scaled, _ = standardize_features(X_df, columns=feature_cols)

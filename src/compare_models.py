@@ -10,7 +10,7 @@ import pandas as pd
 from sklearn.base import clone
 
 from .evaluation import regression_metrics, time_series_cv_splits
-from .feature_engineering import build_minimal_features
+from .feature_engineering import build_full_features
 from .models import build_models
 from .preprocessing import standardize_features
 
@@ -30,19 +30,18 @@ def _load_processed_dataset() -> pd.DataFrame:
 
 def _prepare_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values("year").reset_index(drop=True)
-    df = build_minimal_features(
-        df,
-        target_col="gdp_growth",
-        lag_cols=["usd_eur_rate"],
-        diff_cols=["usd_eur_rate"],
-    )
+    # Forward-fill any gaps (e.g. unemployment_rate missing pre-2009)
+    # then backward-fill to cover any leading NaNs before building features.
+    df = df.ffill().bfill()
+    df = build_full_features(df, target_col="gdp_growth")
     return df
 
 
 def compare_models(n_splits: int = 3) -> pd.DataFrame:
     """Run time-series CV and compare model performance."""
     df = _prepare_features(_load_processed_dataset())
-    feature_cols = [col for col in df.columns if col != "gdp_growth"]
+    # Exclude 'year' from features — it is a time index, not a predictor.
+    feature_cols = [col for col in df.columns if col not in ("gdp_growth", "year")]
 
     X_df = df[feature_cols]
     y = df["gdp_growth"].to_numpy()

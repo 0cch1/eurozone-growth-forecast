@@ -1,10 +1,10 @@
-"""Model definitions for Linear, XGBoost, MLP, and optional symbolic regression (Py-OPERON)."""
+"""Model definitions for Linear/Ridge, XGBoost, MLP, and optional symbolic regression."""
 
 from __future__ import annotations
 
 from typing import Any, Dict
 
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 from sklearn.neural_network import MLPRegressor
 
 try:
@@ -21,8 +21,9 @@ except ImportError:  # pragma: no cover
 def build_models(random_state: int = 42) -> Dict[str, Any]:
     """Instantiate model objects used in experiments.
 
-    Includes interpretable baseline (linear), nonlinear ML (MLP, XGBoost),
-    and optional symbolic regression (Py-OPERON) for human-readable formulas.
+    Uses Ridge instead of plain OLS to handle the small-sample / many-feature
+    regime (n≈25, p≈14).  Alpha=1.0 is a mild default; in the report this
+    choice is motivated by the regularisation discussion in §4.3.
 
     Args:
         random_state: Seed for reproducibility.
@@ -31,7 +32,7 @@ def build_models(random_state: int = 42) -> Dict[str, Any]:
         Dictionary of model name to estimator.
     """
     models: Dict[str, Any] = {
-        "linear": LinearRegression(),
+        "linear": Ridge(alpha=1.0),
         "mlp": MLPRegressor(
             random_state=random_state,
             max_iter=2000,
