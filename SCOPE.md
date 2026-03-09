@@ -35,7 +35,7 @@
 - 国家级 panel、地图可视化
 - 符号回归（Py-OPERON）在报告中的系统对比
 - 子时段稳健性分析（若时间紧可省略）
-- Ridge/Lasso、GAM、多项式回归等额外模型族
+- Elastic Net、GAM、多项式回归等额外模型族
 - Rolling/expanding window 评估
 
 ---

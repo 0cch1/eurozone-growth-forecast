@@ -157,7 +157,6 @@ def test_regression_metrics_perfect() -> None:
 def test_build_models_keys() -> None:
     models = build_models()
     assert "linear" in models
-    assert "lasso" in models
     assert "mlp" in models
     for name, model in models.items():
         assert hasattr(model, "fit"), f"{name} has no fit method"

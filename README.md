@@ -130,6 +130,7 @@ compared with the main CV table in `results/main_cv_results.csv`.
 - **Country-level visualisation:** Country GDP growth panel for 11 euro-area countries + interactive Plotly choropleth map with year slider:
   - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
   - `python -m src.country_map_dashboard [YEAR]` → `results/country_gdp_growth_map.html`
+  - This dashboard is an optional practical extension and does not affect the primary evaluation reported in the dissertation.
 - **AutoML robustness:** FLAML AutoML baseline (`python -m src.automl_experiments`).
 - **Documentation:** Data dictionary, reproducibility guide, indicator registry.
 - **Tests:** Smoke tests in `tests/`.
@@ -137,7 +138,7 @@ compared with the main CV table in `results/main_cv_results.csv`.
 ## Future work
 
 - Rolling/expanding window evaluation as an alternative to fixed-fold time-series CV.
-- Additional model families (e.g. GAM, Lasso, polynomial regression).
+- Additional model families (e.g. GAM, Elastic Net, polynomial regression).
 - Sub-period robustness analysis (e.g. pre/post financial crisis).
 - Country-level model predictions overlaid on the choropleth map.
 - Symbolic regression (Py-OPERON) for formula-like interpretable models.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from sklearn.linear_model import Lasso, Ridge
+from sklearn.linear_model import Ridge
 from sklearn.neural_network import MLPRegressor
 
 try:
@@ -33,7 +33,6 @@ def build_models(random_state: int = 42) -> Dict[str, Any]:
     """
     models: Dict[str, Any] = {
         "linear": Ridge(alpha=1.0),
-        "lasso": Lasso(alpha=0.1, max_iter=5000),
         "mlp": MLPRegressor(
             random_state=random_state,
             max_iter=2000,
