@@ -32,3 +32,6 @@ Thumbs.db
 
 # Local scope / checklist (optional: keep out of repo)
 SCOPE.md
+
+# Claude
+.claude/
