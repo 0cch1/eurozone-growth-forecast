@@ -88,6 +88,15 @@ def test_build_full_features() -> None:
     for col in expected_lags + expected_diffs:
         assert col in result.columns, f"Missing derived column: {col}"
     assert result.notna().all().all()
+    # Loses 1 row from lag/diff NaN at start + 1 row from target shift at end
+    assert len(result) == len(df) - 2
+
+
+def test_build_full_features_no_shift() -> None:
+    """When forecast_horizon=0, no target shift; only lag rows are dropped."""
+    df = _sample_panel()
+    result = build_full_features(df, target_col="gdp_growth", forecast_horizon=0)
+    assert result.notna().all().all()
     assert len(result) == len(df) - 1
 
 
@@ -148,6 +157,7 @@ def test_regression_metrics_perfect() -> None:
 def test_build_models_keys() -> None:
     models = build_models()
     assert "linear" in models
+    assert "lasso" in models
     assert "mlp" in models
     for name, model in models.items():
         assert hasattr(model, "fit"), f"{name} has no fit method"

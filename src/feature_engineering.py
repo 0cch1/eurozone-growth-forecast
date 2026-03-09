@@ -59,14 +59,19 @@ def build_full_features(
     lag_cols: Optional[List[str]] = None,
     diff_cols: Optional[List[str]] = None,
     lag: int = 1,
+    forecast_horizon: int = 1,
 ) -> pd.DataFrame:
     """Build the full feature set from a 6-indicator panel.
 
     - Keeps all raw level columns as features.
     - Adds 1-year lag for each column in lag_cols.
     - Adds 1-year first difference for each column in diff_cols.
+    - Shifts the target variable forward by ``forecast_horizon`` periods so
+      that features at time *t* predict GDP growth at time *t + h*.  This
+      implements the PDD §4.1 requirement: "predicting GDP growth at t+1
+      using information available up to time t".
     - Silently skips any column not present in df (handles subsets gracefully).
-    - Drops the first row(s) that become NaN after lagging/differencing.
+    - Drops rows that become NaN after lagging, differencing, or target shift.
 
     Args:
         df: Yearly panel with at minimum ``target_col`` and level columns.
@@ -74,6 +79,8 @@ def build_full_features(
         lag_cols: Columns to lag (defaults to DEFAULT_LAG_COLS).
         diff_cols: Columns to difference (defaults to DEFAULT_DIFF_COLS).
         lag: Lag/difference order (default 1 year).
+        forecast_horizon: How many periods ahead to predict (default 1).
+            Set to 0 to disable the target shift (contemporaneous modelling).
 
     Returns:
         DataFrame with original levels + derived features, NaN rows dropped.
@@ -89,5 +96,9 @@ def build_full_features(
         df[f"{col}_lag{lag}"] = df[col].shift(lag)
     for col in _diff_cols:
         df[f"{col}_chg{lag}"] = df[col].diff(lag)
+
+    # Shift target so features at t predict target at t + forecast_horizon.
+    if forecast_horizon > 0:
+        df[target_col] = df[target_col].shift(-forecast_horizon)
 
     return df.dropna()

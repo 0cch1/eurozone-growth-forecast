@@ -1,12 +1,13 @@
-pandas
-numpy
-scikit-learn
-xgboost
-shap
-matplotlib
-seaborn
-statsmodels
-pytest
-# Optional: symbolic regression (pip install pyoperon)
+pandas>=2.2.0
+numpy>=2.0.0
+scikit-learn>=1.5.0
+xgboost>=2.0.0
+shap>=0.46.0
+matplotlib>=3.8.0
+plotly>=5.18.0
+pytest>=8.0.0
+# Optional (not required for core pipeline):
+# seaborn>=0.13.0
+# statsmodels>=0.14.0
+# flaml>=2.1.0
 # pyoperon>=0.1.0
-plotly
