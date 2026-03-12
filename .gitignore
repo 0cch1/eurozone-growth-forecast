@@ -33,5 +33,8 @@ Thumbs.db
 # Local scope / checklist (optional: keep out of repo)
 SCOPE.md
 
+# Large generated HTML (Plotly dashboards)
+results/*.html
+
 # Claude
 .claude/
