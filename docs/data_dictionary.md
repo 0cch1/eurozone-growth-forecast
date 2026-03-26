@@ -42,9 +42,9 @@ The pipeline applies `build_full_features()` (see `src/feature_engineering.py`) 
 
 | Column | Definition |
 |--------|-----------|
-| `usd_eur_rate_chg1` | First difference: `usd_eur_rate(t) − usd_eur_rate(t−1)`. |
 | `hicp_inflation_chg1` | First difference: `hicp_inflation(t) − hicp_inflation(t−1)`. |
 | `short_term_rate_chg1` | First difference: `short_term_rate(t) − short_term_rate(t−1)`. |
+| `gov_debt_gdp_chg1` | First difference: `gov_debt_gdp(t) − gov_debt_gdp(t−1)`. |
 
 - **Dropped rows:** After adding lags and differences, the first row(s) with NaN are dropped (`.dropna()`), so the modelling sample starts from the second year onward.
 - **Total model features:** 5 raw levels + 5 lags + 3 changes = **13 features** (year and gdp_growth excluded).
@@ -94,6 +94,9 @@ The pipeline applies `build_full_features()` (see `src/feature_engineering.py`) 
 ## 4. Country-level panel: `data/processed/panel_country_yearly.csv`
 
 Produced by `python -m src.build_country_panel`. One row per country per year.
+The panel is primarily euro-area focused, but the script also attempts to add
+selected non-EU comparator countries (`UK`, `CH`, `NO`, `IS`) when Eurostat
+returns them.
 
 | Column | Type | Description |
 |--------|------|-------------|

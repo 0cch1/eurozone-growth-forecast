@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from .data_utils import load_and_prepare
 from .evaluation import regression_metrics
-from .feature_engineering import build_full_features
 from .preprocessing import standardize_features
 
 FLAML_AVAILABLE = False
@@ -30,14 +30,7 @@ def _get_estimator_list() -> list[str]:
 
 def _load_and_prepare():
     """Same data pipeline as compare_models / run_interpretation."""
-    project_root = Path(__file__).resolve().parents[1]
-    path = project_root / "data" / "processed" / "panel_yearly.csv"
-    if not path.exists():
-        raise FileNotFoundError("Run python -m src.build_dataset first.")
-    df = pd.read_csv(path).sort_values("year").reset_index(drop=True)
-    df = df.ffill().bfill()
-    df = build_full_features(df, target_col="gdp_growth")
-    return df
+    return load_and_prepare()
 
 
 def run_automl_baseline(

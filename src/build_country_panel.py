@@ -1,7 +1,8 @@
-"""Build a simple country-level GDP growth panel for map visualisation.
+"""Build a country-level GDP growth panel for map visualisation.
 
 This script fetches Eurostat GDP growth data (tec00115) for a small set of
-euro area countries and aggregates it to an annual country-year panel:
+euro area countries plus a few non-EU comparator countries and aggregates it
+to an annual country-year panel:
 
 - Input: Eurostat dataset tec00115 via the existing data_loader helpers.
 - Output: data/processed/panel_country_yearly.csv with columns:
@@ -18,11 +19,21 @@ from .data_loader import fetch_eurostat_dataset
 
 
 # Euro area members (ISO2); Eurostat uses EL for Greece in tec00115.
-COUNTRIES = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "EL"]
+EURO_AREA_COUNTRIES = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "EL"]
+
+# Non-EU comparators often available in Eurostat growth tables.
+NON_EU_COMPARATORS = ["UK", "CH", "NO", "IS"]
+
+COUNTRIES = EURO_AREA_COUNTRIES + NON_EU_COMPARATORS
 
 
 def build_country_panel(since_year: int = 2000) -> Path:
-    """Fetch Eurostat GDP growth (tec00115) and build a country-level panel."""
+    """Fetch Eurostat GDP growth (tec00115) and build a country-level panel.
+
+    The panel is intended for visual comparison rather than for the primary
+    modelling pipeline, so it includes the euro area sample and a small set of
+    non-EU benchmark countries when Eurostat provides them.
+    """
     df = fetch_eurostat_dataset(
         dataset_id="tec00115",
         filters=None,
@@ -38,7 +49,8 @@ def build_country_panel(since_year: int = 2000) -> Path:
     if "na_item" in df.columns:
         df = df[df["na_item"] == "B1GQ"]
 
-    # Restrict to a small, illustrative subset of euro area countries.
+    # Restrict to a small, illustrative subset of euro area countries plus
+    # a few non-EU comparator countries for presentation/demo purposes.
     df = df[df["geo"].isin(COUNTRIES)].copy()
     if df.empty:
         raise ValueError("No matching country-level GDP rows found in tec00115.")
@@ -60,7 +72,12 @@ def build_country_panel(since_year: int = 2000) -> Path:
     df.to_csv(out_path, index=False)
 
     print(f"Saved country-level panel to {out_path}")
-    print(f"Countries included: {sorted(df['country'].unique())}")
+    countries_included = sorted(df["country"].unique())
+    print(f"Countries included: {countries_included}")
+    euro_area_included = sorted(c for c in countries_included if c in EURO_AREA_COUNTRIES)
+    comparator_included = sorted(c for c in countries_included if c in NON_EU_COMPARATORS)
+    print(f"Euro area countries: {euro_area_included}")
+    print(f"Non-EU comparators: {comparator_included}")
     # Warn if the latest year has fewer countries (Eurostat release lag).
     latest_year = int(df["year"].max())
     in_latest = set(df[df["year"] == latest_year]["country"])

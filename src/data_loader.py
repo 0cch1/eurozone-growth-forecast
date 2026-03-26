@@ -278,7 +278,8 @@ def fetch_ecb_series_csv(
         params.update(extra_params)
 
     url = f"{ECB_BASE_URL}/{flow_ref}/{series_key}?{urlencode(params)}"
-    return pd.read_csv(url)
+    content = _http_get_text(url, timeout=60)
+    return pd.read_csv(StringIO(content))
 
 
 def save_raw_dataset(df: pd.DataFrame, output_path: str) -> None:

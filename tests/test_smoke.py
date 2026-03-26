@@ -83,7 +83,8 @@ def test_build_full_features() -> None:
         "unemployment_rate_lag1", "short_term_rate_lag1", "gov_debt_gdp_lag1",
     ]
     expected_diffs = [
-        "usd_eur_rate_chg1", "hicp_inflation_chg1", "short_term_rate_chg1",
+        "hicp_inflation_chg1", "short_term_rate_chg1",
+        "gov_debt_gdp_chg1",
     ]
     for col in expected_lags + expected_diffs:
         assert col in result.columns, f"Missing derived column: {col}"
@@ -170,6 +171,7 @@ def test_build_models_keys() -> None:
 def test_feature_display_name_known() -> None:
     assert feature_display_name("hicp_inflation") == "HICP inflation (%)"
     assert feature_display_name("unemployment_rate_lag1") == "Unemployment rate (previous year)"
+    assert feature_display_name("gov_debt_gdp_chg1") == "Government debt change (year-on-year)"
 
 
 def test_feature_display_name_unknown_fallback() -> None:
@@ -186,3 +188,17 @@ def test_add_interactions() -> None:
     result = add_interactions(df, columns=["a", "b"])
     assert "a_x_b" in result.columns
     assert list(result["a_x_b"]) == [4, 10, 18]
+
+
+# ---------------------------------------------------------------------------
+# Naive baseline
+# ---------------------------------------------------------------------------
+
+def test_naive_mean_baseline() -> None:
+    """Naive mean predictor: predict training-set mean for every test point."""
+    y_train = np.array([1.0, 2.0, 3.0])
+    y_test = np.array([4.0, 5.0])
+    preds = np.full(len(y_test), np.mean(y_train))
+    metrics = regression_metrics(y_test, preds)
+    assert metrics["mae"] > 0
+    assert abs(preds[0] - 2.0) < 1e-10

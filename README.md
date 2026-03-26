@@ -127,7 +127,7 @@ compared with the main CV table in `results/main_cv_results.csv`.
 - **Dataset build:** Yearly euro-area panel with lag and change features (`python -m src.build_dataset`).
 - **Model comparison:** Ridge, MLP, XGBoost with time-series CV; MAE, RMSE, R² (`python -m src.main_results`).
 - **Interpretability (XAI):** SHAP summary, PDP, permutation importance, and local explanations (`python -m src.run_interpretation <model>`).
-- **Country-level visualisation:** Country GDP growth panel for 11 euro-area countries + interactive Plotly choropleth map with year slider:
+- **Country-level visualisation:** Country GDP growth panel for 11 euro-area countries plus selected non-EU comparator countries (`UK`, `CH`, `NO`, `IS`) when available from Eurostat, with an interactive Plotly choropleth map and year slider:
   - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
   - `python -m src.country_map_dashboard [YEAR]` → `results/country_gdp_growth_map.html`
   - This dashboard is an optional practical extension and does not affect the primary evaluation reported in the dissertation.

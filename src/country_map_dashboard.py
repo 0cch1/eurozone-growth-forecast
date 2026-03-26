@@ -27,6 +27,8 @@ except ImportError:  # pragma: no cover - optional dependency
 ISO2_TO_ISO3 = {
     "DE": "DEU", "FR": "FRA", "IT": "ITA", "ES": "ESP", "NL": "NLD", "BE": "BEL",
     "AT": "AUT", "PT": "PRT", "IE": "IRL", "FI": "FIN", "GR": "GRC", "EL": "GRC",
+    # Non-Eurozone reference countries
+    "UK": "GBR", "CH": "CHE", "NO": "NOR", "IS": "ISL",
 }
 
 # Approximate (lat, lon) centroids for text labels on the map.
@@ -35,6 +37,9 @@ ISO3_CENTROIDS = {
     "ESP": (40.4, -3.7), "NLD": (52.1, 5.3), "BEL": (50.5, 4.5),
     "AUT": (47.6, 14.6), "PRT": (39.4, -8.2), "IRL": (53.1, -8.0),
     "FIN": (64.0, 26.0), "GRC": (39.1, 21.8),
+    # Non-Eurozone reference countries
+    "GBR": (55.4, -3.4), "CHE": (46.8, 8.2), "NOR": (64.5, 12.0),
+    "ISL": (64.8, -18.1),
 }
 
 
@@ -115,8 +120,7 @@ def build_map(
             if len(play_button_args) > 1 and "frame" in play_button_args[1]:
                 play_button_args[1]["frame"]["duration"] = 2000
 
-    # World map (no scope restriction).
-    fig.update_geos(showcountries=True)
+    fig.update_geos(scope="europe", showcountries=True)
 
     # Add a Scattergeo trace to show GDP growth (%) as text at country centroids.
     def _scatter_text_trace(df_sub: pd.DataFrame):

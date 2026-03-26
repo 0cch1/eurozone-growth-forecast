@@ -17,9 +17,9 @@ DEFAULT_LAG_COLS: List[str] = [
     "gov_debt_gdp",
 ]
 DEFAULT_DIFF_COLS: List[str] = [
-    "usd_eur_rate",
     "hicp_inflation",
     "short_term_rate",
+    "gov_debt_gdp",
 ]
 
 

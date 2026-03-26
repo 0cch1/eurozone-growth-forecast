@@ -132,8 +132,7 @@ def shap_summary(
                 "SHAP value (pp of GDP growth)",
                 fontsize=10,
             )
-            plot_title = title or "SHAP Summary"
-            ax.set_title(plot_title, fontsize=11, fontweight="bold")
+            # Title removed – caption is in the report
             mplt.savefig(save_path, dpi=150, bbox_inches="tight")
             mplt.close()
             out["summary_plot_path"] = str(save_path)
@@ -162,6 +161,7 @@ def _feature_display_name(name: str) -> str:
         "usd_eur_rate_chg1": "USD/EUR rate change (year-on-year)",
         "hicp_inflation_chg1": "HICP inflation change (year-on-year)",
         "short_term_rate_chg1": "Short-term rate change (year-on-year)",
+        "gov_debt_gdp_chg1": "Government debt change (year-on-year)",
     }
     return labels.get(name, name.replace("_", " ").title())
 
@@ -256,7 +256,7 @@ def pdp_plot(
                 feat_label = _feature_display_name(feat_key)
                 ax.set_xlabel(feat_label, fontsize=11)
                 ax.set_ylabel("Predicted GDP growth (%)", fontsize=11)
-                ax.set_title(f"Partial Dependence: {feat_label}", fontsize=12, fontweight="bold")
+                # Title removed – caption is in the report
                 ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
                 ax.grid(True, alpha=0.3)
             plt.tight_layout()
@@ -295,11 +295,7 @@ def _save_local_explanation_barchart(
         fontsize=11,
     )
     ax.axvline(0, color="gray", linewidth=0.8, linestyle="-")
-    ax.set_title(
-        f"Local Feature Contributions\nBaseline {base_value:.2f}% -> Prediction {prediction:.2f}%",
-        fontsize=12,
-        fontweight="bold",
-    )
+    # Title removed – caption is in the report
     legend_handles = [
         Patch(facecolor="#2ecc71", edgecolor="black", label="Pushes prediction up"),
         Patch(facecolor="#e74c3c", edgecolor="black", label="Pushes prediction down"),
@@ -485,7 +481,7 @@ def permutation_importance(
                 "MAE increase after permutation",
                 fontsize=11,
             )
-            ax.set_title("Permutation Importance", fontsize=12, fontweight="bold")
+            # Title removed – caption is in the report
             ax.axvline(0, color="gray", linewidth=0.8, linestyle="-")
             max_x = float(np.nanmax(mean_inc[idx])) if len(mean_inc) else 0.0
             pad = max(0.02 * max(1.0, max_x), 0.005)

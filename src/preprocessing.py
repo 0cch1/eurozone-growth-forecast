@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Iterable, Optional, Tuple
 
 import pandas as pd
@@ -13,12 +14,26 @@ def fill_missing(df: pd.DataFrame, method: str = "ffill") -> pd.DataFrame:
 
     Args:
         df: Input dataframe.
-        method: "ffill", "bfill", or "mean".
+        method: ``"ffill"`` (default), ``"bfill"``, or ``"mean"``.
 
     Returns:
         Dataframe with missing values handled.
+
+    Warning:
+        Using ``method="mean"`` computes the column mean over the entire
+        dataframe. In a train/test split setting this can leak test-set
+        information into training data.  Prefer ``"ffill"`` (the default)
+        for time-series workflows, or call this function on the training
+        partition only.
     """
     if method == "mean":
+        warnings.warn(
+            "fill_missing(method='mean') uses the global column mean which "
+            "may cause data leakage in a train/test split setting. "
+            "Prefer 'ffill' for time-series data or apply on training data only.",
+            UserWarning,
+            stacklevel=2,
+        )
         return df.fillna(df.mean(numeric_only=True))
     if method == "bfill":
         return df.bfill()

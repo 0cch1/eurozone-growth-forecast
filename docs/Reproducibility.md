@@ -54,7 +54,8 @@ Steps 2 → 3 → 4 → 5 are sufficient to reproduce the main results and inter
 
 | File | Content |
 |------|---------|
-| `main_cv_results.csv` | Model-level MAE, RMSE, R² (mean ± std) from time-series CV. |
+| `main_cv_results.csv` | Model-level MAE, RMSE, R² (mean ± std) from time-series CV (includes naive mean baseline). |
+| `main_cv_per_fold.csv` | Per-fold metrics for every model and CV split (matches report Table A.1). |
 | `main_cv_results.png` | Bar chart of MAE/RMSE across models. |
 | `robustness_automl_holdout.csv` | AutoML holdout MAE/RMSE (optional). |
 | `country_gdp_growth_map.html` | Interactive choropleth of country-level GDP growth. |

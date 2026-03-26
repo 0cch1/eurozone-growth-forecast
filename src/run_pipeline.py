@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+from .data_utils import load_and_prepare
 from .evaluation import regression_metrics, time_series_cv_splits
 from .feature_engineering import build_full_features
 from .features import add_interactions, add_lag_features
@@ -31,34 +32,22 @@ def build_demo_dataset(n_periods: int = 24) -> pd.DataFrame:
 
 def load_processed_dataset() -> pd.DataFrame:
     """Load the processed yearly dataset if available."""
-    project_root = Path(__file__).resolve().parents[1]
-    processed_path = project_root / "data" / "processed" / "panel_yearly.csv"
-    if not processed_path.exists():
-        raise FileNotFoundError(
-            "Processed dataset not found. Run `python -m src.build_dataset` first."
-        )
-    df = pd.read_csv(processed_path)
-    if df.empty:
-        raise ValueError("Processed dataset is empty.")
-    return df
+    from .data_utils import load_processed_panel
+    return load_processed_panel()
 
 
 def run_demo(use_real_data: bool = True) -> None:
     """Run an end-to-end demo with real or synthetic data."""
     if use_real_data:
         try:
-            df = load_processed_dataset()
+            df = load_and_prepare()
         except (FileNotFoundError, ValueError):
             print(
                 "Processed dataset missing or empty. Run `python -m src.fetch_real_data` "
                 "then `python -m src.build_dataset`, or use synthetic data for this run."
             )
             use_real_data = False
-    if use_real_data:
-        df = df.sort_values("year").reset_index(drop=True)
-        df = df.ffill().bfill()
-        df = build_full_features(df, target_col="gdp_growth")
-    else:
+    if not use_real_data:
         df = build_demo_dataset()
         df = fill_missing(df, method="ffill")
         df = add_lag_features(df, columns=["inflation", "unemployment"], lags=[1])

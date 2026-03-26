@@ -19,7 +19,7 @@ from .compare_models import compare_models, plot_comparison
 
 def main(n_splits: int = 3) -> None:
     """Run main time-series CV comparison and persist results/figures."""
-    results = compare_models(n_splits=n_splits)
+    results, folds = compare_models(n_splits=n_splits)
 
     project_root = Path(__file__).resolve().parents[1]
     results_dir = project_root / "results"
@@ -29,11 +29,14 @@ def main(n_splits: int = 3) -> None:
     results.to_csv(csv_path, index=False)
     print(f"Saved main CV results to {csv_path}")
 
+    folds_path = results_dir / "main_cv_per_fold.csv"
+    folds.to_csv(folds_path, index=False)
+    print(f"Saved per-fold results to {folds_path}")
+
     png_path = results_dir / "main_cv_results.png"
     try:
         plot_comparison(results, save_path=png_path)
     except Exception as e:
-        # Keep behaviour consistent with compare_models for missing matplotlib.
         print(f"Plot skipped ({e}). Install matplotlib to enable visualisation.")
     else:
         print(f"Saved main CV plot to {png_path}")

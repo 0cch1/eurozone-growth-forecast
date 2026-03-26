@@ -4,8 +4,26 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+import numpy as np
+from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.linear_model import Ridge
 from sklearn.neural_network import MLPRegressor
+
+
+class NaiveLastValue(BaseEstimator, RegressorMixin):
+    """Naive baseline: predict y_train mean (equivalent to historical mean predictor).
+
+    In a time-series context with standardised features, this is the
+    strongest trivial benchmark — it predicts the training-set average
+    for every future observation.
+    """
+
+    def fit(self, X, y):
+        self.mean_ = np.mean(y)
+        return self
+
+    def predict(self, X):
+        return np.full(X.shape[0], self.mean_)
 
 try:
     from xgboost import XGBRegressor  # type: ignore
@@ -32,6 +50,7 @@ def build_models(random_state: int = 42) -> Dict[str, Any]:
         Dictionary of model name to estimator.
     """
     models: Dict[str, Any] = {
+        "naive_mean": NaiveLastValue(),
         "linear": Ridge(alpha=1.0),
         "mlp": MLPRegressor(
             random_state=random_state,
