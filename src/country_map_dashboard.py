@@ -106,19 +106,19 @@ def build_map(
         color_continuous_scale="RdYlGn",
         range_color=(min_val, max_val),
         labels={"gdp_growth": "GDP growth (%)"},
-        title=f"Real GDP growth (%) — {year_title}\nSource: Eurostat tec00115 (real GDP, volume % change). Recent years may show fewer countries (release lag).",
+        title=f"Observed Real GDP Growth (%) — {year_title}<br><sup>Source: Eurostat tec00115. Includes non-EU comparators (CH, IS, NO, UK).</sup>",
         animation_frame="year" if all_years else None,
     )
 
     if all_years:
         fig.layout.sliders[0].currentvalue.prefix = "Year: "
-        # Visual transition of the slider thumb when changing year.
-        fig.layout.sliders[0].transition = dict(duration=2000)
-        # Frame duration when using the play button (ms per year).
+        fig.layout.sliders[0].transition = dict(duration=500)
+        # Set consistent play/pause durations so every frame gets equal time
         if fig.layout.updatemenus and fig.layout.updatemenus[0].buttons:
-            play_button_args = fig.layout.updatemenus[0].buttons[0].args
-            if len(play_button_args) > 1 and "frame" in play_button_args[1]:
-                play_button_args[1]["frame"]["duration"] = 2000
+            for btn in fig.layout.updatemenus[0].buttons:
+                if btn.args and len(btn.args) > 1 and isinstance(btn.args[1], dict):
+                    btn.args[1]["frame"] = {"duration": 1500, "redraw": True}
+                    btn.args[1]["transition"] = {"duration": 500}
 
     fig.update_geos(scope="europe", showcountries=True)
 

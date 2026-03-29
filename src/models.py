@@ -10,7 +10,7 @@ from sklearn.linear_model import Ridge
 from sklearn.neural_network import MLPRegressor
 
 
-class NaiveLastValue(BaseEstimator, RegressorMixin):
+class NaiveMean(BaseEstimator, RegressorMixin):
     """Naive baseline: predict y_train mean (equivalent to historical mean predictor).
 
     In a time-series context with standardised features, this is the
@@ -50,7 +50,7 @@ def build_models(random_state: int = 42) -> Dict[str, Any]:
         Dictionary of model name to estimator.
     """
     models: Dict[str, Any] = {
-        "naive_mean": NaiveLastValue(),
+        "naive_mean": NaiveMean(),
         "linear": Ridge(alpha=1.0),
         "mlp": MLPRegressor(
             random_state=random_state,
