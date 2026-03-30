@@ -65,28 +65,27 @@ def compare_models(n_splits: int = 3) -> tuple[pd.DataFrame, pd.DataFrame]:
             "r2_std": float(np.std(r2_vals)) if len(r2_vals) > 1 else 0.0,
         })
 
-    # Naive mean baseline: predict training-set mean for every test observation.
-    naive_split_metrics = []
+    # Random-walk baseline: predict y_{t} = y_{t-1} (previous year's actual).
+    rw_split_metrics = []
     for fold_i, (train_idx, test_idx) in enumerate(
         time_series_cv_splits(len(df), n_splits=n_splits), start=1
     ):
-        train_mean = float(np.mean(y[train_idx]))
-        preds = np.full(len(test_idx), train_mean)
+        preds = y[np.array(test_idx) - 1]  # each test obs predicted by prior year
         m = regression_metrics(y[test_idx], preds)
-        naive_split_metrics.append(m)
-        fold_records.append({"model": "naive_mean", "fold": fold_i, **m})
+        rw_split_metrics.append(m)
+        fold_records.append({"model": "random_walk", "fold": fold_i, **m})
 
-    naive_mae = [m["mae"] for m in naive_split_metrics]
-    naive_rmse = [m["rmse"] for m in naive_split_metrics]
-    naive_r2 = [m["r2"] for m in naive_split_metrics]
+    rw_mae = [m["mae"] for m in rw_split_metrics]
+    rw_rmse = [m["rmse"] for m in rw_split_metrics]
+    rw_r2 = [m["r2"] for m in rw_split_metrics]
     results.append({
-        "model": "naive_mean",
-        "mae": float(np.mean(naive_mae)),
-        "mae_std": float(np.std(naive_mae)) if len(naive_mae) > 1 else 0.0,
-        "rmse": float(np.mean(naive_rmse)),
-        "rmse_std": float(np.std(naive_rmse)) if len(naive_rmse) > 1 else 0.0,
-        "r2": float(np.mean(naive_r2)),
-        "r2_std": float(np.std(naive_r2)) if len(naive_r2) > 1 else 0.0,
+        "model": "random_walk",
+        "mae": float(np.mean(rw_mae)),
+        "mae_std": float(np.std(rw_mae)) if len(rw_mae) > 1 else 0.0,
+        "rmse": float(np.mean(rw_rmse)),
+        "rmse_std": float(np.std(rw_rmse)) if len(rw_rmse) > 1 else 0.0,
+        "r2": float(np.mean(rw_r2)),
+        "r2_std": float(np.std(rw_r2)) if len(rw_r2) > 1 else 0.0,
     })
 
     summary = pd.DataFrame(results).sort_values("rmse").reset_index(drop=True)
