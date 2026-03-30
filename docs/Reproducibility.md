@@ -2,6 +2,10 @@
 
 This document describes how to reproduce the project's data, model training, evaluation, and interpretation outputs (PDD §4.6). Follow the steps below in order.
 
+Important scope note: the codebase retains two extra baseline benchmarks, `naive_mean` and `random_walk`, inside the main comparison pipeline. These are useful for internal benchmarking and reproducibility, but the **final dissertation/report compares three model families only: Ridge, MLP, and XGBoost**.
+
+Data leakage note: `unemployment_rate` is collected and stored in the raw panel (`panel_yearly.csv`) but **excluded from the modelling feature set** at load time (see `MODEL_EXCLUDED_COLS` in `src/data_utils.py`). Unemployment is contemporaneous with GDP growth and would introduce data leakage if used as a predictor. Additionally, only forward-fill (`ffill`) is applied to missing values — backward-fill (`bfill`) was removed to prevent future information leaking into earlier rows.
+
 ---
 
 ## 1. Environment
@@ -36,15 +40,21 @@ Run these in sequence from the project root.
 |------|---------|---------|
 | 1 | `python -m src.fetch_real_data` | Download raw data from Eurostat/ECB into `data/raw/`. |
 | 2 | `python -m src.build_dataset` | Build the yearly EA panel → `data/processed/panel_yearly.csv`. |
-| 3 | `python -m src.main_results` | Run time-series CV across all models → `results/main_cv_results.csv` and `.png`. |
-| 4 | `python -m src.run_interpretation linear` | Generate SHAP, PDP, permutation importance, local explanation for the linear (Ridge) model → `data/processed/figures/`. |
-| 5 | `python -m src.run_interpretation xgboost` | Same interpretation outputs for XGBoost. |
-| 6 | `python -m src.build_country_panel` | Build country-level GDP panel → `data/processed/panel_country_yearly.csv`. |
-| 7 | `python -m src.country_map_dashboard` | Generate interactive choropleth map → `results/country_gdp_growth_map.html`. |
-| 8 (optional) | `python -m src.automl_experiments` | Run FLAML AutoML holdout baseline → `results/robustness_automl_holdout.csv`. |
+| 3 | `python -m src.main_results` | Run time-series CV across all code-level models/baselines → `results/main_cv_results.csv` and `.png`. |
+| 4 | `python -m src.run_interpretation linear` | Generate SHAP, PDP, permutation importance, local explanation for Ridge → `data/processed/figures/`. |
+| 5 | `python -m src.run_interpretation mlp` | Same interpretation outputs for MLP. |
+| 6 | `python -m src.run_interpretation xgboost` | Same interpretation outputs for XGBoost. |
+| 7 | `python -m src.build_country_panel` | Build country-level GDP panel → `data/processed/panel_country_yearly.csv`. |
+| 8 | `python -m src.country_map_dashboard` | Generate interactive choropleth map → `results/country_gdp_growth_map.html`. |
+| 9 (optional) | `python -m src.automl_experiments` | Run FLAML AutoML holdout baseline → `results/robustness_automl_holdout.csv`. |
 
-**Minimal reproduction (if raw data already fetched):**
-Steps 2 → 3 → 4 → 5 are sufficient to reproduce the main results and interpretation figures.
+**Minimal reproduction (report-facing, if raw data already fetched):**
+Steps 2 → 3 → 4 → 5 → 6 are sufficient to reproduce the main results and interpretation figures used in the final report.
+
+**What Step 3 includes in code:**
+- `naive_mean`: predicts the training-set mean for every test observation.
+- `random_walk`: predicts each test observation using the previous year's actual GDP growth.
+- Ridge, MLP, XGBoost: the three model families discussed in the dissertation.
 
 ---
 
@@ -54,9 +64,9 @@ Steps 2 → 3 → 4 → 5 are sufficient to reproduce the main results and inter
 
 | File | Content |
 |------|---------|
-| `main_cv_results.csv` | Model-level MAE, RMSE, R² (mean ± std) from time-series CV (includes naive mean baseline). |
-| `main_cv_per_fold.csv` | Per-fold metrics for every model and CV split (matches report Table A.1). |
-| `main_cv_results.png` | Bar chart of MAE/RMSE across models. |
+| `main_cv_results.csv` | Model-level MAE, RMSE, R² (mean ± std) from time-series CV. In code this includes `naive_mean` and `random_walk` as extra baselines. |
+| `main_cv_per_fold.csv` | Per-fold metrics for every model and CV split. In code this includes the two extra baselines; Appendix A in the report keeps only Ridge, MLP, and XGBoost. |
+| `main_cv_results.png` | Bar chart of MAE/RMSE across all code-level models/baselines. |
 | `robustness_automl_holdout.csv` | AutoML holdout MAE/RMSE (optional). |
 | `country_gdp_growth_map.html` | Interactive choropleth of country-level GDP growth. |
 
@@ -73,7 +83,7 @@ Steps 2 → 3 → 4 → 5 are sufficient to reproduce the main results and inter
 
 | File | Content |
 |------|---------|
-| `panel_yearly.csv` | Main yearly EA panel (6 indicators). |
+| `panel_yearly.csv` | Main yearly EA panel (6 indicators; used to create the final feature set with lags/changes and next-step target shift). |
 | `panel_country_yearly.csv` | Country-level GDP panel (11 EA countries). |
 | `indicator_list.csv` | Indicator metadata. |
 
@@ -93,5 +103,6 @@ pytest tests/ -v
 
 - Variable definitions and raw file formats are in [data_dictionary.md](data_dictionary.md).
 - Indicator sources and codes are in `INDICATORS.md` and `src/indicators.py`.
-- Feature engineering (lags, first differences) is in `src/feature_engineering.py`.
+- Feature engineering (lags, first differences, and next-step target shift) is in `src/feature_engineering.py`.
 - The `year` column is retained in the dataset but **excluded from model features** in both `compare_models.py` and `run_interpretation.py`.
+- `main_results` is the reproducibility entry point for the full code-level comparison; the final report filters that comparison down to Ridge, MLP, and XGBoost for presentation consistency.

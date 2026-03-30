@@ -19,7 +19,8 @@ This is the main dataset used for training and evaluation. One row per year; geo
 | `gov_debt_gdp` | float | Percent of GDP (%) | General government gross debt as a percentage of GDP, euro area. | Eurostat `tipsgo10`, filtered to EA20. |
 
 - **Time coverage:** Depends on data availability; typically from the late 1990s / 2000 to the latest full year. Exact range is in the file.
-- **Missing values:** Rows with missing `year` or target/source values are dropped per indicator during build. The merged panel uses a **left join** on `year` (anchored to GDP years), so indicators with shorter coverage will have NaN in early years. These are forward/backward-filled (`ffill().bfill()`) by the modelling pipeline before feature engineering.
+- **Missing values:** Rows with missing `year` or target/source values are dropped per indicator during build. The merged panel uses a **left join** on `year` (anchored to GDP years), so indicators with shorter coverage will have NaN in early years. These are **forward-filled only** (`ffill`) by the modelling pipeline before feature engineering — backward-fill was removed to prevent future values leaking into earlier rows.
+- **Excluded from modelling:** `unemployment_rate` is retained in the raw panel for reference but **dropped before modelling** (`MODEL_EXCLUDED_COLS` in `src/data_utils.py`) because it is contemporaneous with GDP growth and would introduce data leakage.
 - **Monthly-to-annual aggregation:** ECB monthly series (`usd_eur_rate`, `hicp_inflation`, `short_term_rate`) are aggregated to annual by simple arithmetic mean of all months in each calendar year. Eurostat series are published as annual.
 
 ---
@@ -34,7 +35,7 @@ The pipeline applies `build_full_features()` (see `src/feature_engineering.py`) 
 |--------|-----------|
 | `usd_eur_rate_lag1` | USD/EUR exchange rate shifted by 1 year. |
 | `hicp_inflation_lag1` | HICP inflation shifted by 1 year. |
-| `unemployment_rate_lag1` | Unemployment rate shifted by 1 year. |
+| `unemployment_rate_lag1` | Unemployment rate shifted by 1 year. ⚠️ Only present if `unemployment_rate` is not excluded (see `MODEL_EXCLUDED_COLS`). |
 | `short_term_rate_lag1` | Short-term interest rate shifted by 1 year. |
 | `gov_debt_gdp_lag1` | Government debt-to-GDP shifted by 1 year. |
 
@@ -47,7 +48,7 @@ The pipeline applies `build_full_features()` (see `src/feature_engineering.py`) 
 | `gov_debt_gdp_chg1` | First difference: `gov_debt_gdp(t) − gov_debt_gdp(t−1)`. |
 
 - **Dropped rows:** After adding lags and differences, the first row(s) with NaN are dropped (`.dropna()`), so the modelling sample starts from the second year onward.
-- **Total model features:** 5 raw levels + 5 lags + 3 changes = **13 features** (year and gdp_growth excluded).
+- **Total model features (current):** With `unemployment_rate` excluded, the modelling pipeline uses 4 raw levels + 4 lags + 3 changes = **11 features** (year and gdp_growth excluded). If `MODEL_EXCLUDED_COLS` is empty, it would be 5 raw levels + 5 lags + 3 changes = 13 features.
 
 ---
 

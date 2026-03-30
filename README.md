@@ -43,7 +43,7 @@ To build the yearly EA dataset into `data/processed`, run:
 python -m src.build_dataset
 ```
 
-**Model comparison (with visualisation):** To compare all models (Naive Mean, Ridge, MLP, XGBoost, Random Walk) and get a bar-chart of MAE/RMSE:
+**Model comparison (with visualisation):** To compare all code-level baselines and models (`naive_mean`, Ridge, MLP, XGBoost, `random_walk`) and get a bar-chart of MAE/RMSE:
 
 ```
 python -m src.build_dataset   # if not already done
@@ -71,9 +71,11 @@ python -m src.main_results
 
 This writes:
 
-- `results/main_cv_results.csv`: model-level MAE, RMSE, R² (mean ± std) from time-aware cross-validation (5 models).
+- `results/main_cv_results.csv`: model-level MAE, RMSE, R² (mean ± std) from time-aware cross-validation. In code, this includes the extra baselines `naive_mean` and `random_walk` alongside Ridge, MLP, and XGBoost.
 - `results/main_cv_per_fold.csv`: per-fold metrics for every model and CV split.
 - `results/main_cv_results.png`: bar-chart visualisation of MAE/RMSE across models.
+
+For the **final dissertation/report**, the primary comparison is restricted to **three model families: Ridge, MLP, and XGBoost**. The extra baselines `naive_mean` and `random_walk` are retained in code as internal reference benchmarks and reproducibility checks, but they are not part of the final report tables/figures.
 
 To generate the **AutoML robustness result** (single time-based holdout, last 20% as test):
 
@@ -91,11 +93,11 @@ time-series CV result and a complementary robustness check respectively.
 
 ## Interpretability (XAI, PDD §4.5)
 
-After building the dataset and (optionally) comparing models, run SHAP summary, PDP, and local explanations for a chosen model:
+After building the dataset and (optionally) comparing models, run SHAP summary, PDP, permutation importance, and local explanations for a chosen report model:
 
 ```
 python -m src.build_dataset
-python -m src.run_interpretation linear    # or: mlp, xgboost
+    python -m src.run_interpretation linear    # or: mlp, xgboost
 ```
 
 Outputs are saved under `data/processed/figures/` (SHAP summary plot, PDPs for first two features, one local explanation). Use the `interpretation` module in code: `shap_summary()`, `pdp_plot()`, `local_explanation()`.
@@ -124,9 +126,10 @@ compared with the main CV table in `results/main_cv_results.csv`.
 
 ## Current progress
 
-- **Data ingestion:** 6 macroeconomic indicators from Eurostat and ECB (`src/indicators.py`, `INDICATORS.md`).
+- **Data ingestion:** 6 macroeconomic indicators from Eurostat and ECB (`src/indicators.py`, `INDICATORS.md`). Note: `unemployment_rate` is fetched and stored in the raw panel but **excluded from the modelling pipeline** (`MODEL_EXCLUDED_COLS` in `src/data_utils.py`) to avoid contemporaneous data leakage.
 - **Dataset build:** Yearly euro-area panel with lag and change features (`python -m src.build_dataset`).
-- **Model comparison:** Naive Mean, Ridge, MLP, XGBoost, and Random Walk baselines with 3-fold time-series CV; MAE, RMSE, R² (`python -m src.main_results`).
+- **Model comparison (code-level):** `naive_mean`, Ridge, MLP, XGBoost, and `random_walk` with 3-fold time-series CV; MAE, RMSE, R² (`python -m src.main_results`).
+- **Model comparison (report-facing):** the final dissertation discusses Ridge, MLP, and XGBoost only. The two extra baselines are retained in code for benchmark/reference purposes.
 - **Interpretability (XAI):** SHAP summary, PDP, permutation importance, and local explanations (`python -m src.run_interpretation <model>`).
 - **Country-level visualisation:** Country GDP growth panel for 11 euro-area countries plus selected non-EU comparator countries (`UK`, `CH`, `NO`, `IS`) when available from Eurostat, with an interactive Plotly choropleth map and year slider:
   - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
