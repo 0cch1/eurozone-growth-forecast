@@ -43,7 +43,7 @@ To build the yearly EA dataset into `data/processed`, run:
 python -m src.build_dataset
 ```
 
-**Model comparison (with visualisation):** To compare baseline models (linear, MLP, XGBoost) and get a bar-chart of MAE/RMSE:
+**Model comparison (with visualisation):** To compare all models (Naive Mean, Ridge, MLP, XGBoost, Random Walk) and get a bar-chart of MAE/RMSE:
 
 ```
 python -m src.build_dataset   # if not already done
@@ -71,7 +71,8 @@ python -m src.main_results
 
 This writes:
 
-- `results/main_cv_results.csv`: model-level MAE/RMSE from time-aware cross-validation.
+- `results/main_cv_results.csv`: model-level MAE, RMSE, R² (mean ± std) from time-aware cross-validation (5 models).
+- `results/main_cv_per_fold.csv`: per-fold metrics for every model and CV split.
 - `results/main_cv_results.png`: bar-chart visualisation of MAE/RMSE across models.
 
 To generate the **AutoML robustness result** (single time-based holdout, last 20% as test):
@@ -125,7 +126,7 @@ compared with the main CV table in `results/main_cv_results.csv`.
 
 - **Data ingestion:** 6 macroeconomic indicators from Eurostat and ECB (`src/indicators.py`, `INDICATORS.md`).
 - **Dataset build:** Yearly euro-area panel with lag and change features (`python -m src.build_dataset`).
-- **Model comparison:** Ridge, MLP, XGBoost with time-series CV; MAE, RMSE, R² (`python -m src.main_results`).
+- **Model comparison:** Naive Mean, Ridge, MLP, XGBoost, and Random Walk baselines with 3-fold time-series CV; MAE, RMSE, R² (`python -m src.main_results`).
 - **Interpretability (XAI):** SHAP summary, PDP, permutation importance, and local explanations (`python -m src.run_interpretation <model>`).
 - **Country-level visualisation:** Country GDP growth panel for 11 euro-area countries plus selected non-EU comparator countries (`UK`, `CH`, `NO`, `IS`) when available from Eurostat, with an interactive Plotly choropleth map and year slider:
   - `python -m src.build_country_panel` → `data/processed/panel_country_yearly.csv`
