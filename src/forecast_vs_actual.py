@@ -1,8 +1,8 @@
-"""Generate actual vs predicted GDP growth chart and 2026 forecast.
+"""Generate actual vs predicted GDP growth chart and 2025 forecast.
 
 Produces:
 - A line chart comparing actual EA GDP growth with XGBoost backtest predictions
-- A one-step-ahead 2026 forecast using the latest available features
+- A one-step-ahead 2025 forecast using the latest available features
 - Saves outputs to results/ and data/processed/figures/
 """
 
@@ -59,43 +59,62 @@ def backtest_predictions() -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def forecast_2026() -> dict:
-    """Train XGBoost on all available data and forecast 2026 EA GDP growth.
+def forecast_next_year() -> dict:
+    """Train XGBoost on all available data and forecast next-year EA GDP growth.
 
-    Returns dict with forecast value and feature values used.
+    load_and_prepare() returns years 2001-2023 (target-shifted, NaN-dropped).
+    To forecast 2025, we need 2024 features. We rebuild features WITHOUT
+    target shifting to access the 2024 row, then train on the shifted subset.
+
+    Returns dict with forecast value and metadata.
     """
-    df = load_and_prepare()
-    feature_cols = [c for c in df.columns if c not in ("gdp_growth", "year")]
-    X_df = df[feature_cols]
-    y = df["gdp_growth"].values
+    from .feature_engineering import build_full_features
+    from .data_utils import load_processed_panel, MODEL_EXCLUDED_COLS
+
+    # --- 1. Build features WITHOUT target shift to keep 2024 row ---
+    raw = load_processed_panel().sort_values("year").reset_index(drop=True)
+    raw = raw.drop(columns=[c for c in MODEL_EXCLUDED_COLS if c in raw.columns])
+    raw = raw.ffill()
+    df_all = build_full_features(raw, target_col="gdp_growth", forecast_horizon=0)
+    # df_all: 2001-2024 (24 rows), target is contemporaneous (not shifted)
+
+    feature_cols = [c for c in df_all.columns if c not in ("gdp_growth", "year")]
+
+    # --- 2. Training set: use shifted target (features at t, target at t+1) ---
+    # This matches the main pipeline's load_and_prepare() output
+    df_train = load_and_prepare()  # 2001-2023, target already shifted
+    X_train_df = df_train[feature_cols]
+    y_train = df_train["gdp_growth"].values
 
     models = build_models()
     xgb = models["xgboost"]
 
-    X_train, scaler = standardize_features(X_df, columns=feature_cols)
-    xgb.fit(X_train.to_numpy(), y)
+    X_train, scaler = standardize_features(X_train_df, columns=feature_cols)
+    xgb.fit(X_train.to_numpy(), y_train)
 
-    # For 2026 forecast, use the last row's features (2024 data predicting 2025 target)
-    # Since our target is shifted, the last available features represent the most recent year
-    last_features = X_df.iloc[[-1]]
-    X_forecast, _ = standardize_features(last_features, columns=feature_cols, scaler=scaler)
+    # --- 3. Forecast: use 2024 features to predict 2025 GDP growth ---
+    last_row = df_all[df_all["year"] == df_all["year"].max()]
+    X_forecast, _ = standardize_features(last_row[feature_cols], columns=feature_cols, scaler=scaler)
     forecast_val = float(xgb.predict(X_forecast.to_numpy())[0])
 
+    forecast_year = int(df_all["year"].max()) + 1  # 2024 + 1 = 2025
+
     return {
-        "forecast_year": 2026,
+        "forecast_year": forecast_year,
         "predicted_gdp_growth": round(forecast_val, 2),
-        "training_years": f"{int(df['year'].min())}–{int(df['year'].max())}",
-        "n_train": len(df),
+        "training_years": f"{int(df_train['year'].min())}\u2013{int(df_train['year'].max())}",
+        "n_train": len(df_train),
     }
 
 
 def plot_actual_vs_predicted(
     backtest_df: pd.DataFrame,
-    forecast_2026_val: Optional[float] = None,
+    forecast_next_year_val: Optional[float] = None,
+    forecast_year: int = 2025,
     save_path: Optional[Path] = None,
     show: bool = False,
 ) -> None:
-    """Plot actual vs predicted GDP growth with optional 2026 forecast point."""
+    """Plot actual vs predicted GDP growth with optional forecast point."""
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -110,18 +129,18 @@ def plot_actual_vs_predicted(
                      backtest_df["actual"], backtest_df["predicted"],
                      alpha=0.15, color="gray")
 
-    if forecast_2026_val is not None:
-        ax.plot(2026, forecast_2026_val, "D", color="red", markersize=10,
-                zorder=5, label=f"2026 Forecast ({forecast_2026_val:.1f}%)")
-        ax.axvline(x=2025.5, color="gray", linestyle=":", alpha=0.5)
-        ax.annotate("Forecast", xy=(2026, forecast_2026_val),
-                     xytext=(2026, forecast_2026_val + 1.5),
+    if forecast_next_year_val is not None:
+        ax.plot(forecast_year, forecast_next_year_val, "D", color="red", markersize=10,
+                zorder=5, label=f"{forecast_year} Forecast ({forecast_next_year_val:.1f}%)")
+        ax.axvline(x=forecast_year - 0.5, color="gray", linestyle=":", alpha=0.5)
+        ax.annotate("Forecast", xy=(forecast_year, forecast_next_year_val),
+                     xytext=(forecast_year, forecast_next_year_val + 1.5),
                      fontsize=9, ha="center", color="red",
                      arrowprops=dict(arrowstyle="->", color="red", lw=1.2))
 
     # Fix x-axis: integer years, every 2 years
     year_min = int(backtest_df["year"].min())
-    year_max = 2026 if forecast_2026_val is not None else int(backtest_df["year"].max())
+    year_max = forecast_year if forecast_next_year_val is not None else int(backtest_df["year"].max())
     ticks = list(range(year_min, year_max + 1, 2))
     if year_max not in ticks:
         ticks.append(year_max)
@@ -155,9 +174,10 @@ def main() -> None:
     bt = backtest_predictions()
     print(bt.to_string(index=False))
 
-    print("\nForecasting 2026...")
-    fc = forecast_2026()
-    print(f"  2026 EA GDP Growth Forecast: {fc['predicted_gdp_growth']}%")
+    print("\nForecasting next year...")
+    fc = forecast_next_year()
+    fy = fc["forecast_year"]
+    print(f"  {fy} EA GDP Growth Forecast: {fc['predicted_gdp_growth']}%")
     print(f"  Training: {fc['training_years']} ({fc['n_train']} observations)")
 
     # Save backtest CSV
@@ -169,8 +189,8 @@ def main() -> None:
     # Save plot
     fig_path = project_root / "data" / "processed" / "figures" / "actual_vs_predicted.png"
     try:
-        plot_actual_vs_predicted(bt, forecast_2026_val=fc["predicted_gdp_growth"],
-                                 save_path=fig_path)
+        plot_actual_vs_predicted(bt, forecast_next_year_val=fc["predicted_gdp_growth"],
+                                 forecast_year=fy, save_path=fig_path)
     except Exception as e:
         print(f"Plot skipped ({e}). Install matplotlib to enable.")
 
