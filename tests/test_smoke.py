@@ -128,7 +128,8 @@ def test_fill_missing_methods() -> None:
     df = pd.DataFrame({"a": [1.0, None, 3.0], "b": [None, 2.0, None]})
     assert fill_missing(df, "ffill")["a"].iloc[1] == 1.0
     assert fill_missing(df, "bfill")["b"].iloc[0] == 2.0
-    filled_mean = fill_missing(df, "mean")
+    with pytest.warns(UserWarning, match="data leakage"):
+        filled_mean = fill_missing(df, "mean")
     assert abs(filled_mean["a"].iloc[1] - 2.0) < 1e-10
 
 
